@@ -1,6 +1,6 @@
 ﻿namespace EasySave.Domain
 {
-    internal class Backupjob
+    internal class BackupJob
     {
         public int Id { get; set; }
         public string Name { get; set; } = string.Empty;

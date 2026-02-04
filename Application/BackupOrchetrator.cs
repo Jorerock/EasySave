@@ -1,4 +1,5 @@
 ﻿using EasySave.Domain;
+using EasySave.Application;
 
 
 namespace EasySave.Application
@@ -30,10 +31,7 @@ namespace EasySave.Application
             _engine.Run(job);
         }
 
-        /// <summary>
-        /// Exécute plusieurs jobs de sauvegarde
-        /// </summary>
-        /// <param name="ids">Liste des identifiants des jobs à exécuter</param>
+        /// Execute multiple jobs
         public void RunMany(List<int> ids)
         {
             if (ids == null || ids.Count == 0)
