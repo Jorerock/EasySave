@@ -7,7 +7,7 @@ namespace EasySave.Application
 {
     internal interface IJobRepository
     {
-        List<Backupjob> LoadAll();
-        void SaveAll(List<Backupjob> jobs);
+        List<BackupJob> LoadAll();
+        void SaveAll(List<BackupJob> jobs);
     }
 }

@@ -26,32 +26,32 @@ namespace EasySave.Infrastructure
             _configPath = configPath;
         }
 
-        public List<Backupjob> LoadAll()
+        public List<BackupJob> LoadAll()
         {
             if (!File.Exists(_configPath))
             {
-                return new List<Backupjob>();
+                return new List<BackupJob>();
             }
 
             string jsonContent = File.ReadAllText(_configPath);
 
             if (string.IsNullOrWhiteSpace(jsonContent))
             {
-                return new List<Backupjob>();
+                return new List<BackupJob>();
             }
 
-            List<Backupjob>? jobs =
-                JsonSerializer.Deserialize<List<Backupjob>>(jsonContent);
+            List<BackupJob>? jobs =
+                JsonSerializer.Deserialize<List<BackupJob>>(jsonContent);
 
             if (jobs == null)
             {
-                return new List<Backupjob>();
+                return new List<BackupJob>();
             }
 
             return jobs;
         }
 
-        public void SaveAll(List<Backupjob> jobs)
+        public void SaveAll(List<BackupJob> jobs)
         {
             if (jobs == null)
             {
@@ -64,7 +64,7 @@ namespace EasySave.Infrastructure
             };
 
             string jsonContent =
-                JsonSerializer.Serialize<List<Backupjob>>(jobs, options);
+                JsonSerializer.Serialize<List<BackupJob>>(jobs, options);
 
             File.WriteAllText(_configPath, jsonContent);
         }
