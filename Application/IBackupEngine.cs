@@ -8,6 +8,6 @@ namespace EasySave.Application
 {
     public interface IBackupEngine
     {
-        void Run(Backupjob job);
+        void Run(BackupJob job);
     }
 }
