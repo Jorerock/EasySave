@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace EasySave.View
+﻿namespace EasySave.View
 {
 
     /// <summary>
