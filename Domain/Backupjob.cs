@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace Backupjob
+namespace EasySave.Domain
 {
     internal class Backupjob
     {
