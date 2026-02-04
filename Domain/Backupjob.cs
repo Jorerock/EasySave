@@ -15,10 +15,3 @@ namespace EasySave.Domain
     }
   
 }
-
-
-public enum BackupType
-{
-    Full,
-    Differential
-}
