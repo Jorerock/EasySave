@@ -57,8 +57,8 @@ namespace EasySave.View
         }
 
         // ── Flux utilisateur ──────────────────────────
-        // Chaque flow : saisit les données, appelle une commande du ViewModel,
-        // puis affiche le résultat via Message / ErrorMessage.
+        // Eqch flow : input first then call the ViewModel Command,
+        // then show of the result/ error message.
 
 
         private void CreateJobFlow()
@@ -76,8 +76,7 @@ namespace EasySave.View
             string typeInput = GetUserInput();
             BackupType type = typeInput == "2" ? BackupType.Differential : BackupType.Full;
 
-            // ── Seule interaction avec le ViewModel ───
-            _viewModel.CreateJob(name, source, target, type);
+            _vm.CreateJob(name, source, target, type);
             ShowMessages();
             Console.ReadKey();
         }
@@ -88,7 +87,7 @@ namespace EasySave.View
             Console.Write(Lang("job_id_delete"));
 
             if (int.TryParse(GetUserInput(), out int id))
-                _viewModel.DeleteJob(id);
+                _vm.DeleteJob(id);
             else
                 ShowError(Lang("error_invalid_input"));
 
@@ -104,7 +103,7 @@ namespace EasySave.View
             if (int.TryParse(GetUserInput(), out int id))
             {
                 Console.WriteLine(Lang("copying"));
-                _viewModel.ExecuteJob(id);
+                _vm.ExecuteJob(id);
             }
             else
             {
@@ -118,7 +117,7 @@ namespace EasySave.View
         private void ExecuteAllFlow()
         {
             Console.WriteLine(Lang("copying"));
-            _viewModel.ExecuteAllJobs();
+            _vm.ExecuteAllJobs();
             ShowMessages();
             Console.ReadKey();
         }
@@ -127,20 +126,18 @@ namespace EasySave.View
         {
             Console.Write(Lang("lang_choice"));
             string lang = GetUserInput();
-            _viewModel.ChangeLanguage(lang);
+            _vm.ChangeLanguage(lang);
             ShowMessages();
             Console.ReadKey();
         }
 
-        // ── Affichage de données (lit ViewModel.Jobs) ─
-
-        /// <summary>
-        /// Affiche la liste des jobs sous forme de tableau.
-        /// Les données viennent uniquement de _viewModel.Jobs.
-        /// </summary>
+        // ── show data (read ViewModel.Jobs) ─
+        /// show the jobs list.
+        /// data came from _vm.Jobs.
+   
         public void DisplayJobList()
         {
-            if (_viewModel.HasNoJobs)
+            if (_vm.HasNoJobs)
             {
                 Console.WriteLine(Lang("job_no_jobs"));
                 return;
@@ -150,7 +147,7 @@ namespace EasySave.View
             Console.WriteLine($"{"ID",-5} {"Name",-20} {"Source",-30} {"Target",-30} {"Type",-15} {"Last Backup",-20}");
             Console.WriteLine(new string('-', 122));
 
-            foreach (var job in _viewModel.Jobs)
+            foreach (var job in _vm.Jobs)
             {
                 string typeName = job.Type == BackupType.Full ? Lang("backup_full") : Lang("backup_diff");
                 Console.WriteLine($"{job.Id,-5} {job.Name,-20} {job.SourceDirectory,-30} {job.TargetDirectory,-30} {typeName,-15} {job.LastBackupDate,-20}");
@@ -158,7 +155,6 @@ namespace EasySave.View
             Console.WriteLine();
         }
 
-        // ── I/O de base ───────────────────────────────
 
         public string GetUserInput()
         {
@@ -172,24 +168,20 @@ namespace EasySave.View
             Console.ResetColor();
         }
 
-        /// <summary>
-        /// Affiche le Message ou l'ErrorMessage du ViewModel après une commande.
-        /// </summary>
+        /// show the error message or normal message from the ViewModel.
         private void ShowMessages()
         {
-            if (!string.IsNullOrEmpty(_viewModel.ErrorMessage))
-                ShowError(_viewModel.ErrorMessage);
+            if (!string.IsNullOrEmpty(_vm.ErrorMessage))
+                ShowError(_vm.ErrorMessage);
 
-            if (!string.IsNullOrEmpty(_viewModel.Message))
+            if (!string.IsNullOrEmpty(_vm.Message))
             {
                 Console.ForegroundColor = ConsoleColor.Green;
-                Console.WriteLine(_viewModel.Message);
+                Console.WriteLine(_vm.Message);
                 Console.ResetColor();
             }
         }
-
-        // ── Helper ────────────────────────────────────
-        /// Récupère le texte localisé pour une clé donnée.
+        /// return traduction for a key.
 
         private string Lang(string key) => _i18n.GetText(key);
     }
