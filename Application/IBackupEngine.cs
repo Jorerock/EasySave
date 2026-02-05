@@ -1,12 +1,9 @@
-﻿using EasySave.Domain;
-using System;
-using System.Collections.Generic;
-using System.Text;
-
+﻿
+using EasySave.Domain;
 
 namespace EasySave.Application
 {
-    public interface IBackupEngine
+    internal interface IBackupEngine
     {
         void Run(BackupJob job);
     }
