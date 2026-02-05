@@ -4,6 +4,8 @@ using EasySave.ViewModel;
 using EasySave.Application;
 using EasySave.Infrastructure;
 using EasySave.Domain;
+using EasyLog.Interfaces;
+using EasyLog.Entries;
 
 namespace EasySave
 {
@@ -18,8 +20,12 @@ namespace EasySave
             IJobRepository repo = new JsonJobRepository("jobs.json");
             JobManager jobManager = new JobManager(repo);
 
-            // Engine de secours pour tester sans easylog.dll
-            IBackupEngine engine = new SimpleConsoleBackupEngine();
+            // Writers EasyLog (implémentations dans Infrastructure)
+            ILogWriter logWriter = new SimpleFileLogWriter("logs");
+            IStateWriter stateWriter = new SimpleFileStateWriter("states");
+
+            // FileSystemBackupEngine utilisant EasyLog writers (une seule instance)
+            IBackupEngine engine = new FileSystemBackupEngine(logWriter, stateWriter);
 
             // Orchestrator (dépend du repo et d'un engine)
             BackupOrchestrator orchestrator = new BackupOrchestrator(repo, engine);
@@ -27,26 +33,16 @@ namespace EasySave
             // ViewModel attendu : JobManager + Orchestrator
             MainViewModel viewModel = new MainViewModel(jobManager, orchestrator);
 
+            CommandParser commandParser = new CommandParser();
+
             // Vue console
-            ConsoleView consoleView = new ConsoleView(viewModel, localizationService);
+            ConsoleView consoleView = new ConsoleView(viewModel, commandParser, localizationService);
 
             // Lancer l'application
             consoleView.Start();
 
             Console.WriteLine("Application terminated. Press any key to exit...");
             Console.ReadKey();
-        }
-
-        // Implémentation minimale d'IBackupEngine pour tester sans EasyLog.
-        private sealed class SimpleConsoleBackupEngine : IBackupEngine
-        {
-            public void Run(BackupJob job)
-            {
-                if (job == null) throw new ArgumentNullException(nameof(job));
-                Console.WriteLine($"[Engine] Backup start '{job.Name}' from '{job.SourceDirectory}' to '{job.TargetDirectory}' ({job.Type})");
-                System.Threading.Thread.Sleep(150);
-                Console.WriteLine($"[Engine] Backup finished '{job.Name}'");
-            }
         }
     }
 }

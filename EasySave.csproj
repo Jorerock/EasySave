@@ -8,18 +8,9 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Folder Include="external\" />
-    <Folder Include="ViewModel\" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <ProjectReference Include="..\EasyLog\EasyLog.csproj" />
-    <ProjectReference Include="EasyLog\EasyLog.csproj" />
-  </ItemGroup>
-
-  <ItemGroup>
     <Reference Include="EasyLog">
       <HintPath>external\EasyLog.dll</HintPath>
+      <Private>true</Private>
     </Reference>
   </ItemGroup>
 

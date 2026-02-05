@@ -1,22 +1,33 @@
-﻿// Infrastructure/FileSystemBackupEngine.cs
+﻿
+// Infrastructure/FileSystemBackupEngine.cs
 using EasySave.Application;
 using EasySave.Domain;
 using EasyLog; // Référence à la DLL
 using System;
 using System.IO;
+using EasyLog.Interfaces;
+using EasyLog.Entries;
+
+// Déplacez les instructions de niveau supérieur AVANT toute déclaration de namespace ou de type
+
+Console.WriteLine("App directory: " + AppContext.BaseDirectory);
+Console.WriteLine("Log dir: " + Path.Combine(AppContext.BaseDirectory, "logs"));
+Console.WriteLine("State dir: " + Path.Combine(AppContext.BaseDirectory, "states"));
 
 namespace EasySave.Infrastructure
 {
+
     internal class FileSystemBackupEngine : IBackupEngine
     {
         private readonly ILogWriter _logWriter;
-        private readonly ILogWriter _stateWriter;
+        private readonly IStateWriter _stateWriter;
 
-        public FileSystemBackupEngine(ILogWriter logWriter, ILogWriter stateWriter)
+        public FileSystemBackupEngine(ILogWriter logWriter, IStateWriter stateWriter)
         {
             _logWriter = logWriter ?? throw new ArgumentNullException(nameof(logWriter));
             _stateWriter = stateWriter ?? throw new ArgumentNullException(nameof(stateWriter));
         }
+
 
         public void Run(BackupJob job)
         {
@@ -28,25 +39,25 @@ namespace EasySave.Infrastructure
                 // Créer l'état initial
                 var state = new StateEntry
                 {
-                    Name = job.Name,
-                    SourceDirectory = job.SourceDirectory,
-                    TargetDirectory = job.TargetDirectory,
-                    State = "Active",
-                    TotalFilesToCopy = 0,
-                    TotalFilesSize = 0,
-                    NbFilesLeftToDo = 0,
-                    Progression = 0
+                    BackupName = job.Name,
+                    CurrentSourceUNC = job.SourceDirectory,
+                    CurrentTargetUNC = job.TargetDirectory,
+                    State = JobRunState.Active,
+                    TotalFiles = 0,
+                    TotalSizeBytes = 0,
+                    FilesRemaining = 0,
+                    ProgressPct = 0
                 };
 
                 // Log de début
-                _logWriter.WriteEntry(new LogEntry
+                _logWriter.WriteDailyLog(new LogEntry
                 {
                     Timestamp = DateTime.Now,
-                    Name = job.Name,
-                    FileSource = job.SourceDirectory,
-                    FileTarget = job.TargetDirectory,
-                    FileSize = 0,
-                    FileTransferTime = 0
+                    BackupName = job.Name,
+                    SourcePathUNC = job.SourceDirectory,
+                    TargetPathUNC = job.TargetDirectory,
+                    FileSizeBytes = 0,
+                    TransferTimeMs = 0
                 });
 
                 // Exécuter la sauvegarde selon le type
@@ -63,21 +74,22 @@ namespace EasySave.Infrastructure
                 }
 
                 // Mettre à jour l'état final
-                state.State = "Completed";
-                state.Progression = 100;
-                _stateWriter.WriteEntry(state);
+                state.State = JobRunState.Completed;
+                state.ProgressPct = 100;
+                //_stateWriter.WriteState(state);
+                //Todo Write State
             }
             catch (Exception ex)
             {
                 // Log d'erreur
-                _logWriter.WriteEntry(new LogEntry
+                _logWriter.WriteDailyLog(new LogEntry
                 {
                     Timestamp = DateTime.Now,
-                    Name = job.Name,
-                    FileSource = job.SourceDirectory,
-                    FileTarget = $"ERROR: {ex.Message}",
-                    FileSize = 0,
-                    FileTransferTime = 0
+                    BackupName = job.Name,
+                    SourcePathUNC = job.SourceDirectory,
+                    TargetPathUNC = $"ERROR: {ex.Message}",
+                    FileSizeBytes = 0,
+                    TransferTimeMs = 0
                 });
 
                 throw;
@@ -96,9 +108,9 @@ namespace EasySave.Infrastructure
                 targetDir.Create();
 
             var files = sourceDir.GetFiles("*", SearchOption.AllDirectories);
-            state.TotalFilesToCopy = files.Length;
-            state.TotalFilesSize = files.Sum(f => f.Length);
-            state.NbFilesLeftToDo = files.Length;
+            state.TotalFiles = files.Length;
+            state.TotalSizeBytes = files.Sum(f => f.Length);
+            state.SizeRemainingBytes = files.Length;
 
             int filesCopied = 0;
 
@@ -121,21 +133,22 @@ namespace EasySave.Infrastructure
                 var transferTime = (DateTime.Now - startTime).TotalMilliseconds;
 
                 // Log du fichier copié
-                _logWriter.WriteEntry(new LogEntry
+                _logWriter.WriteDailyLog(new LogEntry
                 {
                     Timestamp = DateTime.Now,
-                    Name = job.Name,
-                    FileSource = file.FullName,
-                    FileTarget = targetPath,
-                    FileSize = file.Length,
-                    FileTransferTime = transferTime
+                    BackupName = job.Name,
+                    SourcePathUNC = file.FullName,
+                    TargetPathUNC = targetPath,
+                    FileSizeBytes = file.Length,
+                    TransferTimeMs = (long)transferTime
                 });
 
                 // Mise à jour de la progression
                 filesCopied++;
-                state.NbFilesLeftToDo = files.Length - filesCopied;
-                state.Progression = (int)((filesCopied / (double)files.Length) * 100);
-                _stateWriter.WriteEntry(state);
+                state.FilesRemaining = files.Length - filesCopied;
+                state.ProgressPct = (int)((filesCopied / (double)files.Length) * 100);
+                //_stateWriter.(state);
+                //Todo Write State
             }
         }
 
@@ -173,9 +186,9 @@ namespace EasySave.Infrastructure
                 }
             }
 
-            state.TotalFilesToCopy = filesToCopy.Count;
-            state.TotalFilesSize = filesToCopy.Sum(f => f.Length);
-            state.NbFilesLeftToDo = filesToCopy.Count;
+            state.TotalFiles = filesToCopy.Count;
+            state.TotalSizeBytes = filesToCopy.Sum(f => f.Length);
+            state.FilesRemaining = filesToCopy.Count;
 
             int filesCopied = 0;
 
@@ -194,20 +207,21 @@ namespace EasySave.Infrastructure
 
                 var transferTime = (DateTime.Now - startTime).TotalMilliseconds;
 
-                _logWriter.WriteEntry(new LogEntry
+                _logWriter.WriteDailyLog(new LogEntry
                 {
                     Timestamp = DateTime.Now,
-                    Name = job.Name,
-                    FileSource = file.FullName,
-                    FileTarget = targetPath,
-                    FileSize = file.Length,
-                    FileTransferTime = transferTime
+                    BackupName = job.Name,
+                    SourcePathUNC = file.FullName,
+                    TargetPathUNC = targetPath,
+                    FileSizeBytes = file.Length,
+                    TransferTimeMs = (long)transferTime
                 });
 
                 filesCopied++;
-                state.NbFilesLeftToDo = filesToCopy.Count - filesCopied;
-                state.Progression = (int)((filesCopied / (double)filesToCopy.Count) * 100);
-                _stateWriter.WriteEntry(state);
+                state.FilesRemaining = filesToCopy.Count - filesCopied;
+                state.ProgressPct = (int)((filesCopied / (double)filesToCopy.Count) * 100);
+                //_stateWriter.(state);
+                //tODO repair state
             }
         }
     }

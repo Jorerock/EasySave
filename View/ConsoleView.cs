@@ -9,14 +9,15 @@ namespace EasySave.View
     internal class ConsoleView
     {
         private readonly MainViewModel _vm;
-        private readonly Commandparser _parser;
+        private readonly CommandParser _parser;
         private readonly ILocalizationService _i18n;
 
 
-        public ConsoleView(MainViewModel viewModel, ILocalizationService i18n)
+        public ConsoleView(MainViewModel viewModel,CommandParser parser, ILocalizationService i18n)
         {
             _vm = viewModel;
             _i18n = i18n;
+            _parser = parser;   
         }
 
 
@@ -82,6 +83,8 @@ namespace EasySave.View
             Console.ReadKey();
         }
 
+
+
         private void DeleteJobFlow()
         {
             DisplayJobList();
@@ -104,7 +107,7 @@ namespace EasySave.View
             if (int.TryParse(GetUserInput(), out int id))
             {
                 Console.WriteLine(Lang("copying"));
-                _vm.ExecuteJob(id);
+                _vm.RunJob(id);
             }
             else
             {
@@ -118,7 +121,7 @@ namespace EasySave.View
         private void ExecuteAllFlow()
         {
             Console.WriteLine(Lang("copying"));
-            _vm.ExecuteAllJobs();
+            _vm.RunAll();
             ShowMessages();
             Console.ReadKey();
         }
@@ -127,7 +130,7 @@ namespace EasySave.View
         {
             Console.Write(Lang("lang_choice"));
             string lang = GetUserInput();
-            _vm.ChangeLanguage(lang);
+            //_vm.ChangeLanguage(lang);
             ShowMessages();
             Console.ReadKey();
         }
@@ -138,7 +141,8 @@ namespace EasySave.View
    
         public void DisplayJobList()
         {
-            if (_vm.HasNoJobs)
+            var jobs = _vm.ListJobs();
+            if (jobs == null || jobs.Count == 0)
             {
                 Console.WriteLine(Lang("job_no_jobs"));
                 return;
@@ -148,10 +152,10 @@ namespace EasySave.View
             Console.WriteLine($"{"ID",-5} {"Name",-20} {"Source",-30} {"Target",-30} {"Type",-15} {"Last Backup",-20}");
             Console.WriteLine(new string('-', 122));
 
-            foreach (var job in _vm.Jobs)
+            foreach (var job in jobs)
             {
                 string typeName = job.Type == BackupType.Full ? Lang("backup_full") : Lang("backup_diff");
-                Console.WriteLine($"{job.Id,-5} {job.Name,-20} {job.SourceDirectory,-30} {job.TargetDirectory,-30} {typeName,-15} {job.LastBackupDate,-20}");
+                Console.WriteLine($"{job.Id,-5} {job.Name,-20} {job.SourceDirectory,-30} {job.TargetDirectory,-30} {typeName,-15} {job.LastRunUtc,-20}");
             }
             Console.WriteLine();
         }
@@ -172,16 +176,17 @@ namespace EasySave.View
         /// show the error message or normal message from the ViewModel.
         private void ShowMessages()
         {
-            if (!string.IsNullOrEmpty(_vm.ErrorMessage))
-                ShowError(_vm.ErrorMessage);
+            if (!string.IsNullOrEmpty(_vm.ErrorKey))
+                ShowError(Lang(_vm.ErrorKey));
 
-            if (!string.IsNullOrEmpty(_vm.Message))
+            if (!string.IsNullOrEmpty(_vm.MessageKey))
             {
                 Console.ForegroundColor = ConsoleColor.Green;
-                Console.WriteLine(_vm.Message);
+                Console.WriteLine(Lang(_vm.MessageKey));
                 Console.ResetColor();
             }
         }
+
         /// return traduction for a key.
 
         private string Lang(string key) => _i18n.GetText(key);

@@ -1,8 +1,6 @@
 ﻿using EasySave.Application;
 using EasySave.Domain;
-using System;
 using System.Collections.Generic;
-using System.Text;
 
 namespace EasySave.ViewModel
 {
@@ -11,43 +9,103 @@ namespace EasySave.ViewModel
         private readonly JobManager _jobs;
         private readonly BackupOrchestrator _orchestrator;
 
+        // Clés de message (interprétées par la View)
+        public string MessageKey { get; private set; }
+        public string ErrorKey { get; private set; }
+
         internal MainViewModel(JobManager jobs, BackupOrchestrator orchestrator)
         {
             _jobs = jobs;
             _orchestrator = orchestrator;
         }
 
+        private void ClearMessages()
+        {
+            MessageKey = null;
+            ErrorKey = null;
+        }
+
+        // ── Lecture ─────────────────────────────
+
         internal List<BackupJob> ListJobs()
         {
             return _jobs.GetAll();
         }
 
+        // ── Actions ─────────────────────────────
+
         public void CreateJob(string name, string src, string dst, BackupType type)
         {
-            BackupJob job = new BackupJob
-            {
-                Name = name,
-                SourceDirectory = src,
-                TargetDirectory = dst,
-                Type = type
-            };
+            ClearMessages();
 
-            _jobs.Add(job);
+            if (string.IsNullOrWhiteSpace(src) || string.IsNullOrWhiteSpace(dst))
+            {
+                ErrorKey = "error_invalid_path";
+                return;
+            }
+
+            try
+            {
+                BackupJob job = new BackupJob
+                {
+                    Name = name,
+                    SourceDirectory = src,
+                    TargetDirectory = dst,
+                    Type = type
+                };
+
+                _jobs.Add(job);
+                MessageKey = "success_job_created";
+            }
+            catch
+            {
+                ErrorKey = "error_invalid_input";
+            }
         }
 
         public void DeleteJob(int id)
         {
-            _jobs.Remove(id);
+            ClearMessages();
+
+            try
+            {
+                _jobs.Remove(id);
+                MessageKey = "success_job_deleted";
+            }
+            catch
+            {
+                ErrorKey = "error_job_not_found";
+            }
         }
 
-        public void RunJobs(List<int> ids)
+        public void RunJob(int id)
         {
-            _orchestrator.RunMany(ids);
+            ClearMessages();
+
+            try
+            {
+                _orchestrator.RunOne(id);
+                MessageKey = "success_job_executed";
+            }
+            catch
+            {
+                ErrorKey = "error_job_not_found";
+            }
         }
 
         public void RunAll()
         {
-            _orchestrator.RunAllSequential();
+            ClearMessages();
+
+            try
+            {
+                _orchestrator.RunAllSequential();
+                MessageKey = "success_job_executed";
+            }
+            catch
+            {
+                ErrorKey = "error_invalid_input";
+            }
         }
     }
 }
