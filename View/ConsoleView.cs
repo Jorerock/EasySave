@@ -130,7 +130,7 @@ namespace EasySave.View
         {
             Console.Write(Lang("lang_choice"));
             string lang = GetUserInput();
-            //_vm.ChangeLanguage(lang);
+            _i18n.ChangeLanguage(lang);
             ShowMessages();
             Console.ReadKey();
         }
@@ -158,6 +158,7 @@ namespace EasySave.View
                 Console.WriteLine($"{job.Id,-5} {job.Name,-20} {job.SourceDirectory,-30} {job.TargetDirectory,-30} {typeName,-15} {job.LastRunUtc,-20}");
             }
             Console.WriteLine();
+            Console.ReadKey();
         }
 
 

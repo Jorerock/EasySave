@@ -8,12 +8,6 @@ using System.IO;
 using EasyLog.Interfaces;
 using EasyLog.Entries;
 
-// Déplacez les instructions de niveau supérieur AVANT toute déclaration de namespace ou de type
-
-Console.WriteLine("App directory: " + AppContext.BaseDirectory);
-Console.WriteLine("Log dir: " + Path.Combine(AppContext.BaseDirectory, "logs"));
-Console.WriteLine("State dir: " + Path.Combine(AppContext.BaseDirectory, "states"));
-
 namespace EasySave.Infrastructure
 {
 

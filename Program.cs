@@ -17,7 +17,7 @@ namespace EasySave
             ILocalizationService localizationService = new LocalizationService();
 
             // Repository + JobManager
-            IJobRepository repo = new JsonJobRepository("jobs.json");
+            IJobRepository repo = new JsonJobRepository("C:\\Users\\Choupinou\\Downloads\\Logs\\jobs.json");
             JobManager jobManager = new JobManager(repo);
 
             // Writers EasyLog (implémentations dans Infrastructure)
