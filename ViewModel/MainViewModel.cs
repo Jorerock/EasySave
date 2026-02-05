@@ -11,13 +11,13 @@ namespace EasySave.ViewModel
         private readonly JobManager _jobs;
         private readonly BackupOrchestrator _orchestrator;
 
-        public MainViewModel(JobManager jobs, BackupOrchestrator orchestrator)
+        internal MainViewModel(JobManager jobs, BackupOrchestrator orchestrator)
         {
             _jobs = jobs;
             _orchestrator = orchestrator;
         }
 
-        public List<BackupJob> ListJobs()
+        internal List<BackupJob> ListJobs()
         {
             return _jobs.GetAll();
         }

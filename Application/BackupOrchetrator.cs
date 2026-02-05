@@ -9,7 +9,7 @@ namespace EasySave.Application
         private readonly IJobRepository _repo;
         private readonly IBackupEngine _engine;
 
-        public BackupOrchestrator(IJobRepository repo, IBackupEngine engine)
+        internal BackupOrchestrator(IJobRepository repo, IBackupEngine engine)
         {
             _repo = repo ?? throw new ArgumentNullException(nameof(repo));
             _engine = engine ?? throw new ArgumentNullException(nameof(engine));
@@ -20,8 +20,8 @@ namespace EasySave.Application
 
         public void RunOne(int id)
         {
-            var jobs = _repo.LoadAll();
-            var job = jobs.FirstOrDefault(j => j.Id == id);
+            List<BackupJob> jobs = _repo.LoadAll();
+            BackupJob? job = jobs.FirstOrDefault(j => j.Id == id);
 
             if (job == null)
             {
@@ -39,11 +39,11 @@ namespace EasySave.Application
                 throw new ArgumentException("La liste des IDs ne peut pas être vide.", nameof(ids));
             }
 
-            var jobs = _repo.LoadAll();
+            List<BackupJob> jobs = _repo.LoadAll();
 
-            foreach (var id in ids)
+            foreach (int id in ids)
             {
-                var job = jobs.FirstOrDefault(j => j.Id == id);
+                BackupJob? job = jobs.FirstOrDefault(j => j.Id == id);
 
                 if (job == null)
                 {
@@ -57,16 +57,16 @@ namespace EasySave.Application
         /// <summary>
         /// Exécute tous les jobs de sauvegarde disponibles (séquentiel)
         /// </summary>
-        public void RunAll()
+        public void RunAllSequential()
         {
-            var jobs = _repo.LoadAll();
+            List<BackupJob> jobs = _repo.LoadAll();
 
             if (jobs == null || jobs.Count == 0)
             {
                 throw new InvalidOperationException("Aucun job de sauvegarde n'est disponible.");
             }
 
-            foreach (var job in jobs)
+            foreach (BackupJob? job in jobs)
             {
                 _engine.Run(job);
             }
