@@ -1,356 +1,222 @@
-﻿using EasyLog.Entries;
-using EasyLog.Interfaces;
+﻿
+// Infrastructure/FileSystemBackupEngine.cs
 using EasySave.Application;
 using EasySave.Domain;
+using EasyLog; // Référence à la DLL
 using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Text;
+using System.IO;
+using EasyLog.Interfaces;
+using EasyLog.Entries;
 
 namespace EasySave.Infrastructure
 {
-    public sealed class FileSystemBackupEngine : IBackupEngine
+
+    internal class FileSystemBackupEngine : IBackupEngine
     {
         private readonly ILogWriter _logWriter;
         private readonly IStateWriter _stateWriter;
 
         public FileSystemBackupEngine(ILogWriter logWriter, IStateWriter stateWriter)
         {
-            if (logWriter == null)
-            {
-                throw new ArgumentNullException(nameof(logWriter));
-            }
-
-            if (stateWriter == null)
-            {
-                throw new ArgumentNullException(nameof(stateWriter));
-            }
-
-            _logWriter = logWriter;
-            _stateWriter = stateWriter;
+            _logWriter = logWriter ?? throw new ArgumentNullException(nameof(logWriter));
+            _stateWriter = stateWriter ?? throw new ArgumentNullException(nameof(stateWriter));
         }
+
 
         public void Run(BackupJob job)
         {
             if (job == null)
-            {
                 throw new ArgumentNullException(nameof(job));
-            }
-
-            ValidateJob(job);
-
-            string sourceRoot = job.SourceDirectory;
-            string targetRoot = job.TargetDirectory;
-
-            Directory.CreateDirectory(targetRoot);
-
-            List<string> eligibleFiles = GetEligibleFiles(job, sourceRoot, targetRoot);
-
-            int totalFiles = eligibleFiles.Count;
-            long totalSizeBytes = ComputeTotalSizeBytes(eligibleFiles);
-
-            int filesRemaining = totalFiles;
-            long sizeRemainingBytes = totalSizeBytes;
-
-            WriteState(
-                backupName: job.Name,
-                state: JobRunState.Active,
-                totalFiles: totalFiles,
-                totalSizeBytes: totalSizeBytes,
-                filesRemaining: filesRemaining,
-                sizeRemainingBytes: sizeRemainingBytes,
-                progressPct: 0,
-                currentSource: string.Empty,
-                currentTarget: string.Empty
-            );
-
-            for (int i = 0; i < eligibleFiles.Count; i++)
-            {
-                string srcFile = eligibleFiles[i];
-                string relative = Path.GetRelativePath(sourceRoot, srcFile);
-                string dstFile = Path.Combine(targetRoot, relative);
-
-                EnsureDirectoryExistsForFile(dstFile);
-
-                FileInfo info = new FileInfo(srcFile);
-                long fileSize = info.Length;
-
-                // Update state before copy (current file)
-                int progressBefore = ComputeProgressPct(doneBytes: totalSizeBytes - sizeRemainingBytes, totalBytes: totalSizeBytes);
-                WriteState(
-                    backupName: job.Name,
-                    state: JobRunState.Active,
-                    totalFiles: totalFiles,
-                    totalSizeBytes: totalSizeBytes,
-                    filesRemaining: filesRemaining,
-                    sizeRemainingBytes: sizeRemainingBytes,
-                    progressPct: progressBefore,
-                    currentSource: ToFullPathOrUnc(srcFile),
-                    currentTarget: ToFullPathOrUnc(dstFile)
-                );
-
-                long transferMs = CopyOneFileWithTiming(srcFile, dstFile);
-
-                // Log for this file
-                LogEntry logEntry = new LogEntry
-                {
-                    Timestamp = DateTime.UtcNow,
-                    BackupName = job.Name,
-                    SourcePathUNC = ToFullPathOrUnc(srcFile),
-                    TargetPathUNC = ToFullPathOrUnc(dstFile),
-                    FileSizeBytes = fileSize,
-                    TransferTimeMs = transferMs
-                };
-                _logWriter.WriteDailyLog(logEntry);
-
-                // Update remaining counters AFTER copy attempt
-                filesRemaining = filesRemaining - 1;
-                sizeRemainingBytes = sizeRemainingBytes - fileSize;
-                if (sizeRemainingBytes < 0)
-                {
-                    sizeRemainingBytes = 0;
-                }
-
-                int progressAfter = ComputeProgressPct(doneBytes: totalSizeBytes - sizeRemainingBytes, totalBytes: totalSizeBytes);
-                WriteState(
-                    backupName: job.Name,
-                    state: JobRunState.Active,
-                    totalFiles: totalFiles,
-                    totalSizeBytes: totalSizeBytes,
-                    filesRemaining: filesRemaining,
-                    sizeRemainingBytes: sizeRemainingBytes,
-                    progressPct: progressAfter,
-                    currentSource: ToFullPathOrUnc(srcFile),
-                    currentTarget: ToFullPathOrUnc(dstFile)
-                );
-            }
-
-            WriteState(
-                backupName: job.Name,
-                state: JobRunState.Completed,
-                totalFiles: totalFiles,
-                totalSizeBytes: totalSizeBytes,
-                filesRemaining: 0,
-                sizeRemainingBytes: 0,
-                progressPct: 100,
-                currentSource: string.Empty,
-                currentTarget: string.Empty
-            );
-        }
-
-        // -------------------------------------------------------
-        // Méthodes internes demandées par UML
-        // -------------------------------------------------------
-
-        private void CopyFull(string src, string dst)
-        {
-            // Ici on s'appuie sur Run() pour log + state en temps réel.
-            // On garde la méthode pour le diagramme et une extension future.
-            Directory.CreateDirectory(dst);
-        }
-
-        private void CopyDifferential(string src, string dst)
-        {
-            // Ici on s'appuie sur Run() pour log + state en temps réel.
-            Directory.CreateDirectory(dst);
-        }
-
-        private bool ShouldCopy(string srcFile, string dstFile)
-        {
-            if (!File.Exists(dstFile))
-            {
-                return true;
-            }
-
-            DateTime srcTimeUtc = File.GetLastWriteTimeUtc(srcFile);
-            DateTime dstTimeUtc = File.GetLastWriteTimeUtc(dstFile);
-
-            return srcTimeUtc > dstTimeUtc;
-        }
-
-        private long GetDirectorySize(string path)
-        {
-            if (!Directory.Exists(path))
-            {
-                return 0L;
-            }
-
-            long total = 0L;
-
-            IEnumerable<string> files = Directory.EnumerateFiles(path, "*", SearchOption.AllDirectories);
-            foreach (string file in files)
-            {
-                FileInfo info = new FileInfo(file);
-                total += info.Length;
-            }
-
-            return total;
-        }
-
-        // -------------------------------------------------------
-        // Helpers
-        // -------------------------------------------------------
-
-        private void ValidateJob(BackupJob job)
-        {
-            if (string.IsNullOrWhiteSpace(job.Name))
-            {
-                throw new InvalidOperationException("BackupJob.Name is required.");
-            }
-
-            if (string.IsNullOrWhiteSpace(job.SourceDirectory))
-            {
-                throw new InvalidOperationException("BackupJob.SourceDirectory is required.");
-            }
-
-            if (string.IsNullOrWhiteSpace(job.TargetDirectory))
-            {
-                throw new InvalidOperationException("BackupJob.TargetDirectory is required.");
-            }
-
-            if (!Directory.Exists(job.SourceDirectory))
-            {
-                throw new DirectoryNotFoundException("Source directory not found: " + job.SourceDirectory);
-            }
-        }
-
-        private List<string> GetEligibleFiles(BackupJob job, string sourceRoot, string targetRoot)
-        {
-            List<string> allFiles = new List<string>(Directory.EnumerateFiles(sourceRoot, "*", SearchOption.AllDirectories));
-            List<string> eligible = new List<string>();
-
-            for (int i = 0; i < allFiles.Count; i++)
-            {
-                string srcFile = allFiles[i];
-
-                string relative = Path.GetRelativePath(sourceRoot, srcFile);
-                string dstFile = Path.Combine(targetRoot, relative);
-
-                bool include;
-                if (job.Type == BackupType.Full)
-                {
-                    include = true;
-                }
-                else
-                {
-                    include = ShouldCopy(srcFile, dstFile);
-                }
-
-                if (include)
-                {
-                    eligible.Add(srcFile);
-                }
-            }
-
-            return eligible;
-        }
-
-        private long ComputeTotalSizeBytes(List<string> files)
-        {
-            long total = 0L;
-
-            for (int i = 0; i < files.Count; i++)
-            {
-                FileInfo info = new FileInfo(files[i]);
-                total += info.Length;
-            }
-
-            return total;
-        }
-
-        private void EnsureDirectoryExistsForFile(string filePath)
-        {
-            string? dir = Path.GetDirectoryName(filePath);
-            if (string.IsNullOrWhiteSpace(dir))
-            {
-                return;
-            }
-
-            Directory.CreateDirectory(dir);
-        }
-
-        private long CopyOneFileWithTiming(string srcFile, string dstFile)
-        {
-            Stopwatch sw = Stopwatch.StartNew();
 
             try
             {
-                File.Copy(srcFile, dstFile, true);
-                sw.Stop();
-                return sw.ElapsedMilliseconds;
-            }
-            catch
-            {
-                sw.Stop();
-                long ms = sw.ElapsedMilliseconds;
-                if (ms <= 0)
+                // Créer l'état initial
+                var state = new StateEntry
                 {
-                    ms = 1;
+                    BackupName = job.Name,
+                    CurrentSourceUNC = job.SourceDirectory,
+                    CurrentTargetUNC = job.TargetDirectory,
+                    State = JobRunState.Active,
+                    TotalFiles = 0,
+                    TotalSizeBytes = 0,
+                    FilesRemaining = 0,
+                    ProgressPct = 0
+                };
+
+                // Log de début
+                _logWriter.WriteDailyLog(new LogEntry
+                {
+                    Timestamp = DateTime.Now,
+                    BackupName = job.Name,
+                    SourcePathUNC = job.SourceDirectory,
+                    TargetPathUNC = job.TargetDirectory,
+                    FileSizeBytes = 0,
+                    TransferTimeMs = 0
+                });
+
+                // Exécuter la sauvegarde selon le type
+                switch (job.Type)
+                {
+                    case BackupType.Full:
+                        ExecuteFullBackup(job, state);
+                        break;
+                    case BackupType.Differential:
+                        ExecuteDifferentialBackup(job, state);
+                        break;
+                    default:
+                        throw new NotSupportedException($"Type de backup non supporté: {job.Type}");
                 }
 
-                // négatif si erreur (spécification)
-                return -ms;
+                // Mettre à jour l'état final
+                state.State = JobRunState.Completed;
+                state.ProgressPct = 100;
+                //_stateWriter.WriteState(state);
+                //Todo Write State
+            }
+            catch (Exception ex)
+            {
+                // Log d'erreur
+                _logWriter.WriteDailyLog(new LogEntry
+                {
+                    Timestamp = DateTime.Now,
+                    BackupName = job.Name,
+                    SourcePathUNC = job.SourceDirectory,
+                    TargetPathUNC = $"ERROR: {ex.Message}",
+                    FileSizeBytes = 0,
+                    TransferTimeMs = 0
+                });
+
+                throw;
             }
         }
 
-        private void WriteState(
-            string backupName,
-            JobRunState state,
-            int totalFiles,
-            long totalSizeBytes,
-            int filesRemaining,
-            long sizeRemainingBytes,
-            int progressPct,
-            string currentSource,
-            string currentTarget)
+        private void ExecuteFullBackup(BackupJob job, StateEntry state)
         {
-            StateEntry entry = new StateEntry
-            {
-                Timestamp = DateTime.UtcNow,
-                BackupName = backupName,
-                State = state,
-                TotalFiles = totalFiles,
-                TotalSizeBytes = totalSizeBytes,
-                FilesRemaining = filesRemaining,
-                SizeRemainingBytes = sizeRemainingBytes,
-                ProgressPct = progressPct,
-                CurrentSourceUNC = currentSource,
-                CurrentTargetUNC = currentTarget
-            };
+            var sourceDir = new DirectoryInfo(job.SourceDirectory);
+            var targetDir = new DirectoryInfo(job.TargetDirectory);
 
-            _stateWriter.WriteState(entry);
+            if (!sourceDir.Exists)
+                throw new DirectoryNotFoundException($"Répertoire source introuvable: {job.SourceDirectory}");
+
+            if (!targetDir.Exists)
+                targetDir.Create();
+
+            var files = sourceDir.GetFiles("*", SearchOption.AllDirectories);
+            state.TotalFiles = files.Length;
+            state.TotalSizeBytes = files.Sum(f => f.Length);
+            state.SizeRemainingBytes = files.Length;
+
+            int filesCopied = 0;
+
+            foreach (var file in files)
+            {
+                var startTime = DateTime.Now;
+                
+                // Calculer le chemin relatif
+                var relativePath = Path.GetRelativePath(sourceDir.FullName, file.FullName);
+                var targetPath = Path.Combine(targetDir.FullName, relativePath);
+                
+                // Créer le répertoire de destination si nécessaire
+                var targetFileDir = Path.GetDirectoryName(targetPath);
+                if (!Directory.Exists(targetFileDir))
+                    Directory.CreateDirectory(targetFileDir);
+
+                // Copier le fichier
+                File.Copy(file.FullName, targetPath, true);
+
+                var transferTime = (DateTime.Now - startTime).TotalMilliseconds;
+
+                // Log du fichier copié
+                _logWriter.WriteDailyLog(new LogEntry
+                {
+                    Timestamp = DateTime.Now,
+                    BackupName = job.Name,
+                    SourcePathUNC = file.FullName,
+                    TargetPathUNC = targetPath,
+                    FileSizeBytes = file.Length,
+                    TransferTimeMs = (long)transferTime
+                });
+
+                // Mise à jour de la progression
+                filesCopied++;
+                state.FilesRemaining = files.Length - filesCopied;
+                state.ProgressPct = (int)((filesCopied / (double)files.Length) * 100);
+                //_stateWriter.(state);
+                //Todo Write State
+            }
         }
 
-        private int ComputeProgressPct(long doneBytes, long totalBytes)
+        private void ExecuteDifferentialBackup(BackupJob job, StateEntry state)
         {
-            if (totalBytes <= 0L)
+            var sourceDir = new DirectoryInfo(job.SourceDirectory);
+            var targetDir = new DirectoryInfo(job.TargetDirectory);
+
+            if (!sourceDir.Exists)
+                throw new DirectoryNotFoundException($"Répertoire source introuvable: {job.SourceDirectory}");
+
+            if (!targetDir.Exists)
+                targetDir.Create();
+
+            var sourceFiles = sourceDir.GetFiles("*", SearchOption.AllDirectories);
+            var filesToCopy = new List<FileInfo>();
+
+            // Ne copier que les fichiers nouveaux ou modifiés
+            foreach (var sourceFile in sourceFiles)
             {
-                return 100;
+                var relativePath = Path.GetRelativePath(sourceDir.FullName, sourceFile.FullName);
+                var targetPath = Path.Combine(targetDir.FullName, relativePath);
+
+                if (!File.Exists(targetPath))
+                {
+                    filesToCopy.Add(sourceFile);
+                }
+                else
+                {
+                    var targetFile = new FileInfo(targetPath);
+                    if (sourceFile.LastWriteTime > targetFile.LastWriteTime)
+                    {
+                        filesToCopy.Add(sourceFile);
+                    }
+                }
             }
 
-            double ratio = (double)doneBytes / (double)totalBytes;
-            int pct = (int)Math.Round(ratio * 100.0, MidpointRounding.AwayFromZero);
+            state.TotalFiles = filesToCopy.Count;
+            state.TotalSizeBytes = filesToCopy.Sum(f => f.Length);
+            state.FilesRemaining = filesToCopy.Count;
 
-            if (pct < 0) pct = 0;
-            if (pct > 100) pct = 100;
+            int filesCopied = 0;
 
-            return pct;
-        }
-
-        private string ToFullPathOrUnc(string path)
-        {
-            if (string.IsNullOrWhiteSpace(path))
+            foreach (var file in filesToCopy)
             {
-                return string.Empty;
-            }
+                var startTime = DateTime.Now;
+                
+                var relativePath = Path.GetRelativePath(sourceDir.FullName, file.FullName);
+                var targetPath = Path.Combine(targetDir.FullName, relativePath);
+                
+                var targetFileDir = Path.GetDirectoryName(targetPath);
+                if (!Directory.Exists(targetFileDir))
+                    Directory.CreateDirectory(targetFileDir);
 
-            // If already UNC path, keep it
-            if (path.StartsWith(@"\\", StringComparison.Ordinal))
-            {
-                return path;
-            }
+                File.Copy(file.FullName, targetPath, true);
 
-            return Path.GetFullPath(path);
+                var transferTime = (DateTime.Now - startTime).TotalMilliseconds;
+
+                _logWriter.WriteDailyLog(new LogEntry
+                {
+                    Timestamp = DateTime.Now,
+                    BackupName = job.Name,
+                    SourcePathUNC = file.FullName,
+                    TargetPathUNC = targetPath,
+                    FileSizeBytes = file.Length,
+                    TransferTimeMs = (long)transferTime
+                });
+
+                filesCopied++;
+                state.FilesRemaining = filesToCopy.Count - filesCopied;
+                state.ProgressPct = (int)((filesCopied / (double)filesToCopy.Count) * 100);
+                //_stateWriter.(state);
+                //tODO repair state
+            }
         }
     }
 }

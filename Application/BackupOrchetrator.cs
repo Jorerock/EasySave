@@ -10,7 +10,7 @@ namespace EasySave.Application
         private readonly IJobRepository _repo;
         private readonly IBackupEngine _engine;
 
-        public BackupOrchestrator(IJobRepository repo, IBackupEngine engine)
+        internal BackupOrchestrator(IJobRepository repo, IBackupEngine engine)
         {
             _repo = repo ?? throw new ArgumentNullException(nameof(repo));
             _engine = engine ?? throw new ArgumentNullException(nameof(engine));
