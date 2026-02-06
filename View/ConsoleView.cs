@@ -1,189 +1,192 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
+﻿using EasySave.Domain;
 using EasySave.ViewModel;
-using EasySave.Domain;
+using System;
+using System.Collections.Generic;
 
 namespace EasySave.View
 {
-    internal class ConsoleView
+    public sealed class ConsoleView
     {
         private readonly MainViewModel _vm;
-        private readonly Commandparser _parser;
         private readonly ILocalizationService _i18n;
 
-
-        public ConsoleView(MainViewModel viewModel, ILocalizationService i18n)
+        public ConsoleView(MainViewModel vm, ILocalizationService i18n)
         {
-            _vm = viewModel;
-            _i18n = i18n;
+            _vm = vm ?? throw new ArgumentNullException(nameof(vm));
+            _i18n = i18n ?? throw new ArgumentNullException(nameof(i18n));
         }
-
 
         public void Start()
         {
-            bool running = true;
-            while (running)
+            bool exit = false;
+
+            while (!exit)
             {
                 ShowMenu();
-                string choice = GetUserInput();
+                string? input = Console.ReadLine();
 
-                switch (choice)
+                if (string.IsNullOrWhiteSpace(input))
                 {
-                    case "1": CreateJobFlow(); break;
-                    case "2": DeleteJobFlow(); break;
-                    case "3": ExecuteOneFlow(); break;
-                    case "4": ExecuteAllFlow(); break;
-                    case "5": DisplayJobList(); break;
-                    case "6": ChangeLanguageFlow(); break;
-                    case "0": running = false; break;
-                    default: ShowError(Lang("error_invalid_input")); break;
+                    continue;
                 }
+
+                string choice = input.Trim();
+
+                try
+                {
+                    switch (choice)
+                    {
+                        case "1":
+                            ShowJobs();
+                            break;
+
+                        case "2":
+                            CreateJobFlow();
+                            break;
+
+                        case "3":
+                            DeleteJobFlow();
+                            break;
+
+                        case "4":
+                            RunSelectedJobsFlow();
+                            break;
+
+                        case "5":
+                            RunAllFlow();
+                            break;
+
+                        case "6":
+                            ChangeLanguageFlow();
+                            break;
+
+                        case "0":
+                            exit = true;
+                            break;
+
+                        default:
+                            Console.WriteLine(_i18n.T("InvalidChoice"));
+                            break;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine(_i18n.T("Error") + " " + ex.Message);
+                }
+
+                Console.WriteLine();
             }
         }
 
-        public void ShowMenu()
+        private void ShowMenu()
         {
-            Console.Clear();
-            Console.WriteLine();
-            Console.WriteLine(Lang("menu_title"));
-            Console.WriteLine(Lang("menu_create"));
-            Console.WriteLine(Lang("menu_delete"));
-            Console.WriteLine(Lang("menu_execute_one"));
-            Console.WriteLine(Lang("menu_execute_all"));
-            Console.WriteLine(Lang("menu_display"));
-            Console.WriteLine(Lang("menu_language"));
-            Console.WriteLine(Lang("menu_quit"));
-            Console.WriteLine();
+            Console.WriteLine("======================================");
+            Console.WriteLine("EasySave");
+            Console.WriteLine("======================================");
+            Console.WriteLine("1) " + _i18n.T("Menu_ListJobs"));
+            Console.WriteLine("2) " + _i18n.T("Menu_CreateJob"));
+            Console.WriteLine("3) " + _i18n.T("Menu_DeleteJob"));
+            Console.WriteLine("4) " + _i18n.T("Menu_RunSelected"));
+            Console.WriteLine("5) " + _i18n.T("Menu_RunAll"));
+            Console.WriteLine("6) " + _i18n.T("Menu_ChangeLanguage"));
+            Console.WriteLine("0) " + _i18n.T("Menu_Exit"));
+            Console.Write(_i18n.T("Prompt_Choice") + " ");
         }
 
-        // ── Flux utilisateur ──────────────────────────
-        // Eqch flow : input first then call the ViewModel Command,
-        // then show of the result/ error message.
+        private void ShowJobs()
+        {
+            List<BackupJob> jobs = _vm.ListJobs();
 
+            if (jobs.Count == 0)
+            {
+                Console.WriteLine(_i18n.T("NoJobs"));
+                return;
+            }
+
+            Console.WriteLine(_i18n.T("JobsHeader"));
+            for (int i = 0; i < jobs.Count; i++)
+            {
+                BackupJob job = jobs[i];
+                Console.WriteLine(
+                    $"[{job.Id}] {job.Name} | {job.Type} | {job.SourceDirectory} -> {job.TargetDirectory}"
+                );
+            }
+        }
 
         private void CreateJobFlow()
         {
-            Console.Write(Lang("job_name"));
-            string name = GetUserInput();
+            Console.Write(_i18n.T("Prompt_Name") + " ");
+            string name = Console.ReadLine() ?? string.Empty;
 
-            Console.Write(Lang("job_source"));
-            string source = GetUserInput();
+            Console.Write(_i18n.T("Prompt_Source") + " ");
+            string src = Console.ReadLine() ?? string.Empty;
 
-            Console.Write(Lang("job_target"));
-            string target = GetUserInput();
+            Console.Write(_i18n.T("Prompt_Target") + " ");
+            string dst = Console.ReadLine() ?? string.Empty;
 
-            Console.Write(Lang("job_type"));
-            string typeInput = GetUserInput();
-            BackupType type = typeInput == "2" ? BackupType.Differential : BackupType.Full;
+            Console.WriteLine("1) Full");
+            Console.WriteLine("2) Differential");
+            Console.Write(_i18n.T("Prompt_Type") + " ");
+            string typeInput = Console.ReadLine() ?? "1";
 
-            _vm.CreateJob(name, source, target, type);
-            ShowMessages();
-            Console.ReadKey();
+            BackupType type = typeInput.Trim() == "2" ? BackupType.Differential : BackupType.Full;
+
+            _vm.CreateJob(name, src, dst, type);
+            Console.WriteLine(_i18n.T("JobCreated"));
         }
 
         private void DeleteJobFlow()
         {
-            DisplayJobList();
-            Console.Write(Lang("job_id_delete"));
+            Console.Write(_i18n.T("Prompt_Id") + " ");
+            string input = Console.ReadLine() ?? string.Empty;
 
-            if (int.TryParse(GetUserInput(), out int id))
-                _vm.DeleteJob(id);
-            else
-                ShowError(Lang("error_invalid_input"));
-
-            ShowMessages();
-            Console.ReadKey();
-        }
-
-        private void ExecuteOneFlow()
-        {
-            DisplayJobList();
-            Console.Write(Lang("job_id_execute"));
-
-            if (int.TryParse(GetUserInput(), out int id))
+            if (!int.TryParse(input.Trim(), out int id))
             {
-                Console.WriteLine(Lang("copying"));
-                _vm.ExecuteJob(id);
-            }
-            else
-            {
-                ShowError(Lang("error_invalid_input"));
+                Console.WriteLine(_i18n.T("InvalidId"));
+                return;
             }
 
-            ShowMessages();
-            Console.ReadKey();
+            _vm.DeleteJob(id);
+            Console.WriteLine(_i18n.T("JobDeleted"));
         }
 
-        private void ExecuteAllFlow()
+        private void RunSelectedJobsFlow()
         {
-            Console.WriteLine(Lang("copying"));
-            _vm.ExecuteAllJobs();
-            ShowMessages();
-            Console.ReadKey();
+            Console.WriteLine(_i18n.T("Prompt_RunSelected"));
+            Console.WriteLine(_i18n.T("Hint_RunSelected")); // ex: "1-3" ou "1;3"
+            Console.Write("> ");
+            string selection = Console.ReadLine() ?? string.Empty;
+
+            CommandParser parser = new CommandParser(1, int.MaxValue);
+            List<int> ids = parser.ParseJobSelection(selection);
+
+            if (ids.Count == 0)
+            {
+                Console.WriteLine(_i18n.T("NoValidSelection"));
+                return;
+            }
+
+            _vm.RunJobs(ids);
+            Console.WriteLine(_i18n.T("RunDone"));
+        }
+
+        private void RunAllFlow()
+        {
+            _vm.RunAll();
+            Console.WriteLine(_i18n.T("RunDone"));
         }
 
         private void ChangeLanguageFlow()
         {
-            Console.Write(Lang("lang_choice"));
-            string lang = GetUserInput();
-            _vm.ChangeLanguage(lang);
-            ShowMessages();
-            Console.ReadKey();
+            Console.WriteLine("1) FR");
+            Console.WriteLine("2) EN");
+            Console.Write("> ");
+            string input = Console.ReadLine() ?? "1";
+
+            string lang = input.Trim() == "2" ? "en" : "fr";
+            _i18n.CurrentLanguage = lang;
+
+            Console.WriteLine(_i18n.T("LanguageChanged"));
         }
-
-        // ── show data (read ViewModel.Jobs) ─
-        /// show the jobs list.
-        /// data came from _vm.Jobs.
-   
-        public void DisplayJobList()
-        {
-            if (_vm.HasNoJobs)
-            {
-                Console.WriteLine(Lang("job_no_jobs"));
-                return;
-            }
-
-            Console.WriteLine();
-            Console.WriteLine($"{"ID",-5} {"Name",-20} {"Source",-30} {"Target",-30} {"Type",-15} {"Last Backup",-20}");
-            Console.WriteLine(new string('-', 122));
-
-            foreach (var job in _vm.Jobs)
-            {
-                string typeName = job.Type == BackupType.Full ? Lang("backup_full") : Lang("backup_diff");
-                Console.WriteLine($"{job.Id,-5} {job.Name,-20} {job.SourceDirectory,-30} {job.TargetDirectory,-30} {typeName,-15} {job.LastBackupDate,-20}");
-            }
-            Console.WriteLine();
-        }
-
-
-        public string GetUserInput()
-        {
-            return Console.ReadLine() ?? string.Empty;
-        }
-
-        public void ShowError(string message)
-        {
-            Console.ForegroundColor = ConsoleColor.Red;
-            Console.WriteLine(message);
-            Console.ResetColor();
-        }
-
-        /// show the error message or normal message from the ViewModel.
-        private void ShowMessages()
-        {
-            if (!string.IsNullOrEmpty(_vm.ErrorMessage))
-                ShowError(_vm.ErrorMessage);
-
-            if (!string.IsNullOrEmpty(_vm.Message))
-            {
-                Console.ForegroundColor = ConsoleColor.Green;
-                Console.WriteLine(_vm.Message);
-                Console.ResetColor();
-            }
-        }
-        /// return traduction for a key.
-
-        private string Lang(string key) => _i18n.GetText(key);
     }
 }

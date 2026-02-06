@@ -1,27 +1,53 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.IO;
+using EasyLog.Interfaces;
+using EasyLog.Writers;
+using EasySave.Application;
+using EasySave.Infrastructure;
 using EasySave.View;
 using EasySave.ViewModel;
- 
+
 namespace EasySave
 {
-    class Program
+    internal static class Program
     {
-        static void Main(string[] args)
+        private static void Main(string[] args)
         {
-            // Initialize the localization service
+            string appData = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
+            string baseDir = Path.Combine(appData, "ProSoft", "EasySave");
+            Directory.CreateDirectory(baseDir);
+
+            string configPath = Path.Combine(baseDir, "jobs.json");
+            string logDir = Path.Combine(baseDir, "logs");
+            string statePath = Path.Combine(baseDir, "state.json");
+
+            ILogWriter logWriter = new JsonLogWriter(logDir);
+            IStateWriter stateWriter = new JsonStateWriter(statePath);
+
+            IJobRepository repo = new JsonJobRepository(configPath);
+            IBackupEngine engine = new FileSystemBackupEngine(logWriter, stateWriter);
+
+            JobManager jobManager = new JobManager(repo);
+            BackupOrchestrator orchestrator = new BackupOrchestrator(repo, engine);
+            MainViewModel viewModel = new MainViewModel(jobManager, orchestrator);
+
+            // Mode CLI : EasySave.exe 1-3 / 1;3
+            if (args != null && args.Length > 0)
+            {
+                CommandParser parser = new CommandParser(1, int.MaxValue);
+                List<int> ids = parser.ParseJobSelection(args);
+
+                if (ids.Count > 0)
+                {
+                    viewModel.RunJobs(ids);
+                }
+                return;
+            }
+
             ILocalizationService localizationService = new LocalizationService();
-
-            // Initialize your ViewModel (you'll need to implement this)
-            MainViewModel viewModel = new MainViewModel(localizationService);
-
-            // Create the console view with dependencies
             ConsoleView consoleView = new ConsoleView(viewModel, localizationService);
-
-            // Start the application
             consoleView.Start();
-
-            Console.WriteLine("Application terminated. Press any key to exit...");
-            Console.ReadKey();
         }
     }
 }
