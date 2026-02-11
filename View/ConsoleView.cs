@@ -166,7 +166,12 @@ namespace EasySave.View
                 return;
             }
 
-            _vm.RunJobs(ids);
+            // Fix: RunJob expects a single int. Iterate over parsed ids and call RunJob for each id.
+            foreach (int id in ids)
+            {
+                _vm.RunJob(id);
+            }
+
             Console.WriteLine(_i18n.T("RunDone"));
         }
 
