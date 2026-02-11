@@ -42,12 +42,9 @@ namespace EasySave.Application
                 );
             }
 
-            bool idAlreadyExists = jobs.Any(existingJob => existingJob.Id == job.Id);
-            if (idAlreadyExists)
+            while (jobs.Any(existingJob => existingJob.Id == job.Id))
             {
-                throw new InvalidOperationException(
-                    " existe déjà."
-                );
+                job.Id++;
             }
 
             jobs.Add(job);

@@ -38,7 +38,6 @@ namespace EasySave.View
                     case "5": DisplayJobList(); break;
                     case "6": ChangeLanguageFlow(); break;
                     case "0": running = false; break;
-                    default: ShowError(Lang("error_invalid_input")); break;
                 }
             }
         }

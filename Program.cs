@@ -13,11 +13,14 @@ namespace EasySave
     {
         static void Main(string[] args)
         {
+            string basePath = AppContext.BaseDirectory;
+            string jobFilePath = Path.Combine(basePath, "jobs.json");
+
             // Initialization localizationService
             ILocalizationService localizationService = new LocalizationService();
 
             // Repository + JobManager
-            IJobRepository repo = new JsonJobRepository("C:\\Users\\Choupinou\\Downloads\\Logs\\jobs.json");
+            IJobRepository repo = new JsonJobRepository(jobFilePath);
             JobManager jobManager = new JobManager(repo);
 
             // Writers EasyLog
