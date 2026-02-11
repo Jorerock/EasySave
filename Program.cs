@@ -40,7 +40,11 @@ namespace EasySave
 
                 if (ids.Count > 0)
                 {
-                    viewModel.RunJobs(ids);
+                    // Correction : itérer et appeler RunJob pour chaque id (RunJob attend un int)
+                    foreach (int id in ids)
+                    {
+                        viewModel.RunJob(id);
+                    }
                 }
                 return;
             }
