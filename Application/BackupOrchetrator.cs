@@ -1,10 +1,11 @@
 ﻿using EasySave.Domain;
-using EasySave.Application;
-
+using System;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace EasySave.Application
 {
-    public class BackupOrchestrator
+    public sealed class BackupOrchestrator
     {
         private readonly IJobRepository _repo;
         private readonly IBackupEngine _engine;
@@ -14,9 +15,6 @@ namespace EasySave.Application
             _repo = repo ?? throw new ArgumentNullException(nameof(repo));
             _engine = engine ?? throw new ArgumentNullException(nameof(engine));
         }
-
-        /// Execute a job with is id
-  
 
         public void RunOne(int id)
         {
@@ -31,7 +29,6 @@ namespace EasySave.Application
             _engine.Run(job);
         }
 
-        /// Execute multiple jobs
         public void RunMany(List<int> ids)
         {
             if (ids == null || ids.Count == 0)
@@ -44,32 +41,31 @@ namespace EasySave.Application
             foreach (int id in ids)
             {
                 BackupJob? job = jobs.FirstOrDefault(j => j.Id == id);
-
                 if (job == null)
                 {
                     throw new InvalidOperationException($"Le job avec l'ID {id} n'existe pas.");
                 }
-
                 _engine.Run(job);
             }
         }
 
-        /// <summary>
-        /// Exécute tous les jobs de sauvegarde disponibles (séquentiel)
-        /// </summary>
-        public void RunAllSequential()
+        public void RunAll()
         {
             List<BackupJob> jobs = _repo.LoadAll();
-
             if (jobs == null || jobs.Count == 0)
             {
                 throw new InvalidOperationException("Aucun job de sauvegarde n'est disponible.");
             }
 
-            foreach (BackupJob? job in jobs)
+            foreach (BackupJob job in jobs)
             {
                 _engine.Run(job);
             }
+        }
+
+        public void RunAllSequential()
+        {
+            RunAll();
         }
     }
 }
