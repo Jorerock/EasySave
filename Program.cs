@@ -14,8 +14,7 @@ namespace EasySave
     {
         private static void Main(string[] args)
         {
-            string appData = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
-            string baseDir = Path.Combine(appData, "ProSoft", "EasySave");
+            string baseDir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "ProSoft", "EasySave");
             Directory.CreateDirectory(baseDir);
 
             string configPath = Path.Combine(baseDir, "jobs.json");
