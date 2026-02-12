@@ -8,17 +8,10 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Remove="EasyLog\**" />
-    <EmbeddedResource Remove="EasyLog\**" />
-    <None Remove="EasyLog\**" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Folder Include="ViewModel\" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <ProjectReference Include="EasyLog\EasyLog.csproj" />
+    <Reference Include="EasyLog">
+      <HintPath>external\EasyLog.dll</HintPath>
+      <Private>true</Private>
+    </Reference>
   </ItemGroup>
 
 </Project>

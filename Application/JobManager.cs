@@ -1,24 +1,18 @@
 ﻿using EasySave.Domain;
 using System;
 using System.Collections.Generic;
-using System.Text;
-using System.Xml.Linq;
+using System.Linq;
 
 namespace EasySave.Application
 {
-    public class JobManager
+    public sealed class JobManager
     {
-        private  IJobRepository _repo;
-        private  int MaxJobs = 5;
+        private readonly IJobRepository _repo;
+        private const int MaxJobs = 5;
 
         public JobManager(IJobRepository repo)
         {
-            if (repo == null)
-            {
-                throw new ArgumentNullException(nameof(repo));
-            }
-
-            _repo = repo;
+            _repo = repo ?? throw new ArgumentNullException(nameof(repo));
         }
 
         public List<BackupJob> GetAll()
@@ -28,26 +22,24 @@ namespace EasySave.Application
 
         public void Add(BackupJob job)
         {
-            if (job == null)
-            {
-                throw new ArgumentNullException(nameof(job));
-            }
+            if (job == null) throw new ArgumentNullException(nameof(job));
 
             List<BackupJob> jobs = _repo.LoadAll();
-
             if (jobs.Count >= MaxJobs)
             {
-                throw new InvalidOperationException(
-                    "Nombre maximum de travaux  atteint."
-                );
+                throw new InvalidOperationException("Nombre maximum de travaux atteint.");
             }
 
-            bool idAlreadyExists = jobs.Any(existingJob => existingJob.Id == job.Id);
-            if (idAlreadyExists)
+            // Auto-assign ID si non fourni
+            if (job.Id <= 0)
             {
-                throw new InvalidOperationException(
-                    " existe déjà."
-                );
+                int nextId = jobs.Count == 0 ? 1 : jobs.Max(j => j.Id) + 1;
+                job.Id = nextId;
+            }
+
+            while (jobs.Any(existingJob => existingJob.Id == job.Id))
+            {
+                job.Id++;
             }
 
             jobs.Add(job);
@@ -57,15 +49,11 @@ namespace EasySave.Application
         public void Remove(int id)
         {
             List<BackupJob> jobs = _repo.LoadAll();
-
-            BackupJob? jobToRemove =
-                jobs.FirstOrDefault(existingJob => existingJob.Id == id);
+            BackupJob? jobToRemove = jobs.FirstOrDefault(existingJob => existingJob.Id == id);
 
             if (jobToRemove == null)
             {
-                throw new InvalidOperationException(
-                    "Le travail à supprimer est introuvable."
-                );
+                throw new InvalidOperationException("Le travail à supprimer est introuvable.");
             }
 
             jobs.Remove(jobToRemove);
