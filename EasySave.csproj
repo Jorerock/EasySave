@@ -7,11 +7,11 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
+  
+
   <ItemGroup>
-    <Reference Include="EasyLog">
-      <HintPath>external\EasyLog.dll</HintPath>
-      <Private>true</Private>
-    </Reference>
+    <Folder Include="ViewModel\" />
   </ItemGroup>
 
+ 
 </Project>
