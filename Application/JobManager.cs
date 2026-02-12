@@ -6,7 +6,7 @@ using System.Xml.Linq;
 
 namespace EasySave.Application
 {
-    internal class JobManager
+    public class JobManager
     {
         private  IJobRepository _repo;
         private  int MaxJobs = 5;

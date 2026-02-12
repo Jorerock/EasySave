@@ -12,7 +12,7 @@ namespace EasySave
             ILocalizationService localizationService = new LocalizationService();
 
             // Initialize your ViewModel (you'll need to implement this)
-            MainViewModel viewModel = new MainViewModel(localizationService);
+            MainViewModel viewModel = new MainViewModel(localizationService,);
 
             // Create the console view with dependencies
             ConsoleView consoleView = new ConsoleView(viewModel, localizationService);
