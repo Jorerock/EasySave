@@ -7,6 +7,15 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
+  <ItemGroup>
+    <Compile Remove="EasyLog\**" />
+    <Compile Remove="external\**" />
+    <EmbeddedResource Remove="EasyLog\**" />
+    <EmbeddedResource Remove="external\**" />
+    <None Remove="EasyLog\**" />
+    <None Remove="external\**" />
+  </ItemGroup>
+
   
 
   <ItemGroup>
