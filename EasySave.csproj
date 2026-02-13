@@ -7,13 +7,11 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
+  
+
   <ItemGroup>
-    <Folder Include="Infrastructure\" />
     <Folder Include="ViewModel\" />
   </ItemGroup>
 
-  <ItemGroup>
-    <ProjectReference Include="..\EasyLog\EasyLog.csproj" />
-  </ItemGroup>
-
+ 
 </Project>

@@ -1,155 +1,111 @@
-﻿namespace EasySave.View
+﻿using System.Collections.Generic;
+namespace EasySave.View
+
 {
+
+    public interface ILocalizationService
+    {
+        string CurrentLanguage { get; set; }
+        string T(string key);
+    }
 
     /// <summary>
     /// Implementation of the localization service.
     /// Manages translations for French and English languages.
     /// </summary>
-    public class LocalizationService : ILocalizationService
+    public sealed class LocalizationService : ILocalizationService
     {
-        private Dictionary<string, string> _translations;
-        private string _currentLanguage;
-
-        // Dictionary containing all translations for each language
-        private readonly Dictionary<string, Dictionary<string, string>> _languages;
-
-        public string CurrentLanguage => _currentLanguage;
+        private readonly Dictionary<string, Dictionary<string, string>> _translations;
 
         public LocalizationService()
         {
-            _languages = new Dictionary<string, Dictionary<string, string>>();
-            InitializeLanguages();
-            _currentLanguage = "fr"; // Default language
-            _translations = _languages[_currentLanguage];
-        }
+            CurrentLanguage = "fr";
 
-        /// <summary>
-        /// Gets the translated text for a given key.
-        /// </summary>
-        public string GetText(string key)
-        {
-            if (_translations.ContainsKey(key))
-                return _translations[key];
-
-            // Return the key itself if translation not found
-            return $"[{key}]";
-        }
-
-        /// <summary>
-        /// Changes the current language.
-        /// </summary>
-        public bool ChangeLanguage(string languageCode)
-        {
-            languageCode = languageCode.ToLower();
-
-            if (_languages.ContainsKey(languageCode))
+            _translations = new Dictionary<string, Dictionary<string, string>>
             {
-                _currentLanguage = languageCode;
-                _translations = _languages[languageCode];
-                return true;
+                {
+                    "fr", new Dictionary<string, string>
+                    {
+                        { "InvalidChoice", "Choix invalide." },
+                        { "Error", "Erreur :" },
+
+                        { "Menu_ListJobs", "Lister les sauvegardes" },
+                        { "Menu_CreateJob", "Créer une sauvegarde" },
+                        { "Menu_DeleteJob", "Supprimer une sauvegarde" },
+                        { "Menu_RunSelected", "Exécuter des sauvegardes (sélection)" },
+                        { "Menu_RunAll", "Exécuter toutes les sauvegardes" },
+                        { "Menu_ChangeLanguage", "Changer la langue" },
+                        { "Menu_Exit", "Quitter" },
+
+                        { "Prompt_Choice", "Votre choix" },
+                        { "Prompt_Name", "Nom de la sauvegarde" },
+                        { "Prompt_Source", "Répertoire source" },
+                        { "Prompt_Target", "Répertoire cible" },
+                        { "Prompt_Type", "Type (1=Full, 2=Diff)" },
+                        { "Prompt_Id", "ID du job" },
+                        { "Prompt_RunSelected", "Entrez la sélection à exécuter" },
+                        { "Hint_RunSelected", "Exemples: 1-3   ou   1;3" },
+
+                        { "NoJobs", "Aucune sauvegarde disponible." },
+                        { "JobsHeader", "Liste des sauvegardes :" },
+                        { "JobCreated", "Sauvegarde créée." },
+                        { "JobDeleted", "Sauvegarde supprimée." },
+                        { "InvalidId", "ID invalide." },
+                        { "NoValidSelection", "Aucun ID valide dans la sélection." },
+                        { "RunDone", "Exécution terminée." },
+                        { "LanguageChanged", "Langue modifiée." }
+                    }
+                },
+                {
+                    "en", new Dictionary<string, string>
+                    {
+                        { "InvalidChoice", "Invalid choice." },
+                        { "Error", "Error:" },
+
+                        { "Menu_ListJobs", "List backup jobs" },
+                        { "Menu_CreateJob", "Create a backup job" },
+                        { "Menu_DeleteJob", "Delete a backup job" },
+                        { "Menu_RunSelected", "Run selected jobs" },
+                        { "Menu_RunAll", "Run all jobs" },
+                        { "Menu_ChangeLanguage", "Change language" },
+                        { "Menu_Exit", "Exit" },
+
+                        { "Prompt_Choice", "Your choice" },
+                        { "Prompt_Name", "Backup name" },
+                        { "Prompt_Source", "Source directory" },
+                        { "Prompt_Target", "Target directory" },
+                        { "Prompt_Type", "Type (1=Full, 2=Diff)" },
+                        { "Prompt_Id", "Job ID" },
+                        { "Prompt_RunSelected", "Enter selection to run" },
+                        { "Hint_RunSelected", "Examples: 1-3   or   1;3" },
+
+                        { "NoJobs", "No backup job available." },
+                        { "JobsHeader", "Backup jobs list:" },
+                        { "JobCreated", "Job created." },
+                        { "JobDeleted", "Job deleted." },
+                        { "InvalidId", "Invalid ID." },
+                        { "NoValidSelection", "No valid ID in selection." },
+                        { "RunDone", "Execution finished." },
+                        { "LanguageChanged", "Language updated." }
+                    }
+                }
+            };
+        }
+
+        public string CurrentLanguage { get; set; }
+
+        public string T(string key)
+        {
+            if (_translations.TryGetValue(CurrentLanguage, out Dictionary<string, string>? langDict))
+            {
+                if (langDict.TryGetValue(key, out string? value))
+                {
+                    return value;
+                }
             }
 
-            return false;
-        }
-
-        /// <summary>
-        /// Initializes all available languages and their translations.
-        /// </summary>
-        private void InitializeLanguages()
-        {
-            // English translations
-            _languages["en"] = new Dictionary<string, string>
-        {
-            // Menu
-            { "menu_title", "=== EasySave - Backup Manager ===" },
-            { "menu_create", "1. Create a backup job" },
-            { "menu_delete", "2. Delete a backup job" },
-            { "menu_execute_one", "3. Execute a backup job" },
-            { "menu_execute_all", "4. Execute all backup jobs" },
-            { "menu_display", "5. Display backup jobs" },
-            { "menu_language", "6. Change language" },
-            { "menu_quit", "0. Quit" },
-
-            // Job creation
-            { "job_name", "Job name: " },
-            { "job_source", "Source directory: " },
-            { "job_target", "Target directory: " },
-            { "job_type", "Backup type (1=Full, 2=Differential): " },
-            { "job_id_delete", "Enter the job ID to delete: " },
-            { "job_id_execute", "Enter the job ID to execute: " },
-            { "job_no_jobs", "No backup jobs available." },
-
-            // Backup types
-            { "backup_full", "Full" },
-            { "backup_diff", "Differential" },
-
-            // Language
-            { "lang_choice", "Choose language (en/fr): " },
-
-            // Messages
-            { "copying", "Copying in progress..." },
-            { "error_invalid_input", "Error: Invalid input." },
-            { "error_job_not_found", "Error: Job not found." },
-            { "error_invalid_path", "Error: Invalid path." },
-            { "success_job_created", "Job created successfully." },
-            { "success_job_deleted", "Job deleted successfully." },
-            { "success_job_executed", "Job executed successfully." },
-            { "success_language_changed", "Language changed successfully." }
-        };
-
-            // French translations
-            _languages["fr"] = new Dictionary<string, string>
-        {
-            // Menu
-            { "menu_title", "=== EasySave - Gestionnaire de Sauvegardes ===" },
-            { "menu_create", "1. Créer un travail de sauvegarde" },
-            { "menu_delete", "2. Supprimer un travail de sauvegarde" },
-            { "menu_execute_one", "3. Exécuter un travail de sauvegarde" },
-            { "menu_execute_all", "4. Exécuter tous les travaux de sauvegarde" },
-            { "menu_display", "5. Afficher les travaux de sauvegarde" },
-            { "menu_language", "6. Changer de langue" },
-            { "menu_quit", "0. Quitter" },
-
-            // Job creation
-            { "job_name", "Nom du travail : " },
-            { "job_source", "Répertoire source : " },
-            { "job_target", "Répertoire cible : " },
-            { "job_type", "Type de sauvegarde (1=Complète, 2=Différentielle) : " },
-            { "job_id_delete", "Entrez l'ID du travail à supprimer : " },
-            { "job_id_execute", "Entrez l'ID du travail à exécuter : " },
-            { "job_no_jobs", "Aucun travail de sauvegarde disponible." },
-
-            // Backup types
-            { "backup_full", "Complète" },
-            { "backup_diff", "Différentielle" },
-
-            // Language
-            { "lang_choice", "Choisissez la langue (en/fr) : " },
-
-            // Messages
-            { "copying", "Copie en cours..." },
-            { "error_invalid_input", "Erreur : Saisie invalide." },
-            { "error_job_not_found", "Erreur : Travail introuvable." },
-            { "error_invalid_path", "Erreur : Chemin invalide." },
-            { "success_job_created", "Travail créé avec succès." },
-            { "success_job_deleted", "Travail supprimé avec succès." },
-            { "success_job_executed", "Travail exécuté avec succès." },
-            { "success_language_changed", "Langue modifiée avec succès." }
-        };
-        }
-
-        public IEnumerable<string> GetAvailableLanguages()
-        {
-            return _languages.Keys;
+            // fallback: returns key if missing
+            return key;
         }
     }
-   
-
-    public interface ILocalizationService
-    {
-        string CurrentLanguage { get; }
-        string GetText(string key);
-        bool ChangeLanguage(string languageCode);
-    }
-
 }
