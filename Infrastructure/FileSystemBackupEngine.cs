@@ -214,7 +214,7 @@ namespace EasySave.Infrastructure
                 filesCopied++;
                 state.FilesRemaining = filesToCopy.Count - filesCopied;
                 state.ProgressPct = (int)((filesCopied / (double)filesToCopy.Count) * 100);
-                //_stateWriter.(state);
+                _stateWriter.WriteState(state);
                 //tODO repair state
             }
         }
