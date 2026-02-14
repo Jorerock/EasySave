@@ -159,87 +159,63 @@ namespace EasySave.Infrastructure
 
             var sourceFiles = sourceDir.GetFiles("*", SearchOption.AllDirectories);
             var filesToCopy = new List<FileInfo>();
-            long totalSize = 0;
 
-            // Identifier les fichiers à copier
+            // Ne copier que les fichiers nouveaux ou modifiés
             foreach (var sourceFile in sourceFiles)
             {
                 var relativePath = Path.GetRelativePath(sourceDir.FullName, sourceFile.FullName);
                 var targetPath = Path.Combine(targetDir.FullName, relativePath);
 
-                bool shouldCopy = false;
-
                 if (!File.Exists(targetPath))
                 {
-                    shouldCopy = true;
+                    filesToCopy.Add(sourceFile);
                 }
                 else
                 {
                     var targetFile = new FileInfo(targetPath);
-                    // Comparer taille ET date avec tolérance d'1 seconde
-                    if (sourceFile.Length != targetFile.Length ||
-                        Math.Abs((sourceFile.LastWriteTime - targetFile.LastWriteTime).TotalSeconds) > 1)
+                    if (sourceFile.LastWriteTime > targetFile.LastWriteTime)
                     {
-                        shouldCopy = true;
+                        filesToCopy.Add(sourceFile);
                     }
-                }
-
-                if (shouldCopy)
-                {
-                    filesToCopy.Add(sourceFile);
-                    totalSize += sourceFile.Length;
                 }
             }
 
             state.TotalFiles = filesToCopy.Count;
-            state.TotalSizeBytes = totalSize;
+            state.TotalSizeBytes = filesToCopy.Sum(f => f.Length);
             state.FilesRemaining = filesToCopy.Count;
 
             int filesCopied = 0;
 
             foreach (var file in filesToCopy)
             {
-                try
+                var startTime = DateTime.Now;
+                
+                var relativePath = Path.GetRelativePath(sourceDir.FullName, file.FullName);
+                var targetPath = Path.Combine(targetDir.FullName, relativePath);
+                
+                var targetFileDir = Path.GetDirectoryName(targetPath);
+                if (!Directory.Exists(targetFileDir))
+                    Directory.CreateDirectory(targetFileDir);
+
+                File.Copy(file.FullName, targetPath, true);
+
+                var transferTime = (DateTime.Now - startTime).TotalMilliseconds;
+
+                _logWriter.WriteDailyLog(new LogEntry
                 {
-                    var startTime = DateTime.Now;
-                    var relativePath = Path.GetRelativePath(sourceDir.FullName, file.FullName);
-                    var targetPath = Path.Combine(targetDir.FullName, relativePath);
+                    Timestamp = DateTime.Now,
+                    BackupName = job.Name,
+                    SourcePathUNC = file.FullName,
+                    TargetPathUNC = targetPath,
+                    FileSizeBytes = file.Length,
+                    TransferTimeMs = (long)transferTime
+                });
 
-                    var targetFileDir = Path.GetDirectoryName(targetPath);
-                    if (!Directory.Exists(targetFileDir))
-                        Directory.CreateDirectory(targetFileDir);
-
-                    File.Copy(file.FullName, targetPath, true);
-
-                    var transferTime = (DateTime.Now - startTime).TotalMilliseconds;
-
-                    _logWriter.WriteDailyLog(new LogEntry
-                    {
-                        Timestamp = DateTime.Now,
-                        BackupName = job.Name,
-                        SourcePathUNC = file.FullName,
-                        TargetPathUNC = targetPath,
-                        FileSizeBytes = file.Length,
-                        TransferTimeMs = (long)transferTime
-                    });
-
-                    filesCopied++;
-                }
-                catch (Exception ex)
-                {
-                    // Logger l'erreur mais continuer avec les autres fichiers
-                    //Todo repair _logWriter
-                    //_logWriter.WriteError(job.Name, file.FullName, ex.Message);
-                }
-                finally
-                {
-                    // Mettre à jour l'état même en cas d'erreur
-                    state.FilesRemaining = filesToCopy.Count - filesCopied;
-                    state.ProgressPct = filesToCopy.Count > 0
-                        ? (int)((filesCopied / (double)filesToCopy.Count) * 100)
-                        : 0;
-                    _stateWriter.WriteState(state);
-                }
+                filesCopied++;
+                state.FilesRemaining = filesToCopy.Count - filesCopied;
+                state.ProgressPct = (int)((filesCopied / (double)filesToCopy.Count) * 100);
+                _stateWriter.WriteState(state);
+                //tODO repair state
             }
         }
     }
