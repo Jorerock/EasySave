@@ -1,0 +1,3 @@
+[submodule "external/Easylog"]
+	path = external/Easylog
+	url = https://github.com/velosso/EasyLog.git
