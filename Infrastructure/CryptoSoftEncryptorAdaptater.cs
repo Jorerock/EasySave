@@ -4,19 +4,31 @@ namespace EasySave.Infrastructure
 {
     internal class CryptoSoftEncryptorAdaptater
     {
-        internal required string _CryptoSoftExePath;
+        private readonly string _key;
 
-        public void CryptoSoftEncryptorAdapter(string CryptoSoftExePath)
+        public CryptoSoftEncryptorAdaptater(string key)
         {
-            _CryptoSoftExePath = CryptoSoftExePath ?? throw new ArgumentNullException(nameof(CryptoSoftExePath));
+            _key = key ?? throw new ArgumentNullException(nameof(key));
         }
 
-        public void EncryptFile(string inputFilePath, string outputFilePath)
+        public static int EncryptFile(string inputFilePath)
         {
-            string key = "si j'oublie de retirer la cle du code celestin je suis dans la mouise";
-            CryptoSoft.FileManager manager = new FileManager(inputFilePath, key);
-            int elapsed = manager.TransformFile();
-
+            try
+            {
+                string key = "Je_Suis_une_cle_en_dure_dans_le_code";
+                CryptoSoft.FileManager manager = new FileManager(inputFilePath, key);
+                //elapsed should be used to log the time taken for encryption,
+                //TODO: integrate with EasyLog to log this information
+                int elapsed = manager.TransformFile();
+                return elapsed;
+            }
+            catch (Exception ex)
+            {
+                // Handle exceptions (e.g., log the error) 
+                //Todo: integrate with EasyLog to log this information
+                Console.WriteLine($"Error CryptoSoft dll : {ex.Message}");
+                return -1;
+            }
         }
     }
 }
