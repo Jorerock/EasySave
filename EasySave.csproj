@@ -15,7 +15,12 @@
 
 	<!-- Référence DLL EasyLog -->
 	<ItemGroup>
+		<Reference Include="CryptoSoft">
+		  <HintPath>external\CryptoSoft.dll</HintPath>
+		</Reference>
 		<Reference Include="EasyLog">
+			
+			<!-- Le chemin ne devrait pas pointer vers \Debug\ seul la realease existe en production-->
 			<HintPath>external\EasyLog\bin\Debug\net10.0\EasyLog.dll</HintPath>
 		</Reference>
 	</ItemGroup>
