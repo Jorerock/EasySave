@@ -115,6 +115,7 @@ namespace EasySave.View
 
         private void CreateJobFlow()
         {
+            Console.Clear();
             Console.Write(_i18n.T("Prompt_Name") + " ");
             string name = Console.ReadLine() ?? string.Empty;
 
@@ -131,7 +132,67 @@ namespace EasySave.View
 
             BackupType type = typeInput.Trim() == "2" ? BackupType.Differential : BackupType.Full;
 
-            _vm.CreateJob(name, src, dst, type);
+            // Options de cryptage
+            Console.WriteLine("\n" + _i18n.T("EncryptionOptions") + ":");
+            Console.Write(_i18n.T("Prompt_EnableEncryption") + " (O/N): ");
+            string encryptChoice = Console.ReadLine()?.Trim().ToUpper() ?? "N";
+            bool enableEncryption = encryptChoice == "O" || encryptChoice == "Y" || encryptChoice == "YES" || encryptChoice == "OUI";
+
+            string encryptionKey = null;
+            List<string> extensionsToEncrypt = new List<string>();
+
+            if (enableEncryption)
+            {
+                // Demander la clé de cryptage
+                Console.Write(_i18n.T("Prompt_EncryptionKey") + " ");
+                encryptionKey = Console.ReadLine()?.Trim();
+
+                if (string.IsNullOrEmpty(encryptionKey))
+                {
+                    Console.WriteLine(_i18n.T("Warning_NoKey"));
+                    encryptionKey = "DefaultKey_EasySave_2024"; // Clé par défaut
+                    Console.WriteLine(_i18n.T("Info_UsingDefaultKey"));
+                }
+
+                // Demander les extensions à crypter
+                Console.WriteLine("\n" + _i18n.T("Prompt_ExtensionsToEncrypt"));
+                Console.WriteLine(_i18n.T("Info_ExtensionsExample")); // Ex: .docx .pdf .txt .xlsx
+                Console.WriteLine(_i18n.T("Info_ExtensionsEmpty")); // (Entrée vide = tous les fichiers)
+                Console.Write("> ");
+                string extensionsInput = Console.ReadLine()?.Trim();
+
+                if (!string.IsNullOrEmpty(extensionsInput))
+                {
+                    // Parser les extensions
+                    extensionsToEncrypt = extensionsInput
+                        .Split(new[] { ' ', ',', ';' }, StringSplitOptions.RemoveEmptyEntries)
+                        .Select(ext => ext.StartsWith(".") ? ext : "." + ext)
+                        .Select(ext => ext.ToLowerInvariant())
+                        .Distinct()
+                        .ToList();
+
+                    Console.WriteLine(_i18n.T("Info_ExtensionsSelected") + ": " + string.Join(", ", extensionsToEncrypt));
+                }
+                else
+                {
+                    Console.WriteLine(_i18n.T("Info_AllFilesEncrypted"));
+                }
+            }
+
+
+            _vm.CreateJob(name, src, dst, type, enableEncryption, encryptionKey, extensionsToEncrypt);
+
+            // Resume
+            Console.WriteLine("\n=== " + _i18n.T("JobSummary") + " ===");
+            Console.WriteLine($"{_i18n.T("Name")}: {name}");
+            Console.WriteLine($"{_i18n.T("Source")}: {src}");
+            Console.WriteLine($"{_i18n.T("Target")}: {dst}");
+            Console.WriteLine($"{_i18n.T("Type")}: {type}");
+            Console.WriteLine($"{_i18n.T("Encryption")}: {(enableEncryption ? _i18n.T("Yes") : _i18n.T("No"))}");
+            if (enableEncryption)
+            {
+                Console.WriteLine($"{_i18n.T("Extensions")}: {(extensionsToEncrypt.Any() ? string.Join(", ", extensionsToEncrypt) : _i18n.T("All"))}");
+            }
             Console.WriteLine(_i18n.T("JobCreated"));
         }
 
