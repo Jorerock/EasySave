@@ -89,62 +89,61 @@ namespace EasySave.Infrastructure
                 throw;
             }
         }
-
         private void ExecuteFullBackup(BackupJob job, StateEntry state)
         {
+            // Validate and prepare directories
             var sourceDir = new DirectoryInfo(job.SourceDirectory);
             var targetDir = new DirectoryInfo(job.TargetDirectory);
 
             if (!sourceDir.Exists)
-                throw new DirectoryNotFoundException($"Répertoire source introuvable: {job.SourceDirectory}");
+                throw new DirectoryNotFoundException($"Source directory not found: {job.SourceDirectory}");
 
             if (!targetDir.Exists)
                 targetDir.Create();
 
+            // Initialize encryptor if encryption is enabled
+            CryptoSoftEncryptorAdapter encryptor = null;
+            if (job.EnableEncryption && !string.IsNullOrEmpty(job.EncryptionKey))
+            {
+                encryptor = new CryptoSoftEncryptorAdapter(job.EncryptionKey, _logWriter);
+            }
+
+            // Select ALL files for full backup
             var files = sourceDir.GetFiles("*", SearchOption.AllDirectories);
+
+            // Initialize state
             state.TotalFiles = files.Length;
             state.TotalSizeBytes = files.Sum(f => f.Length);
-            state.SizeRemainingBytes = files.Length;
+            state.FilesRemaining = files.Length;
 
+            // Process each file
             int filesCopied = 0;
-
             foreach (var file in files)
             {
-                var startTime = DateTime.Now;
-                
-                // Calculer le chemin relatif
-                var relativePath = Path.GetRelativePath(sourceDir.FullName, file.FullName);
-                var targetPath = Path.Combine(targetDir.FullName, relativePath);
-                
-                // Créer le répertoire de destination si nécessaire
-                var targetFileDir = Path.GetDirectoryName(targetPath);
-                if (!Directory.Exists(targetFileDir))
-                    Directory.CreateDirectory(targetFileDir);
-
-                // Copier le fichier
-                File.Copy(file.FullName, targetPath, true);
-
-                var transferTime = (DateTime.Now - startTime).TotalMilliseconds;
-
-                // Log du fichier copié
-                _logWriter.WriteDailyLog(new LogEntry
+                try
                 {
-                    Timestamp = DateTime.Now,
-                    BackupName = job.Name,
-                    SourcePathUNC = file.FullName,
-                    TargetPathUNC = targetPath,
-                    FileSizeBytes = file.Length,
-                    TransferTimeMs = (long)transferTime
-                });
-
-                // Mise à jour de la progression
-                filesCopied++;
-                state.FilesRemaining = files.Length - filesCopied;
-                state.ProgressPct = (int)((filesCopied / (double)files.Length) * 100);
-                //_stateWriter.(state);
-                //Todo Write State
+                    // Process single file
+                    ProcessFile(file, sourceDir, targetDir, job, encryptor);
+                    filesCopied++;
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Error processing file {file.FullName}: {ex.Message}");
+                }
+                finally
+                {
+                    // Update progress
+                    state.FilesRemaining = files.Length - filesCopied;
+                    state.ProgressPct = files.Length > 0
+                        ? (int)((filesCopied / (double)files.Length) * 100)
+                        : 0;
+                    _stateWriter.WriteState(state);
+                }
             }
         }
+
+
+
         private void ExecuteDifferentialBackup(BackupJob job, StateEntry state)
         {
             var sourceDir = new DirectoryInfo(job.SourceDirectory);
@@ -156,18 +155,18 @@ namespace EasySave.Infrastructure
             if (!targetDir.Exists)
                 targetDir.Create();
 
-            // Initialiser l'encrypteur si nécessaire
+            // Encryptor initialization
             CryptoSoftEncryptorAdapter encryptor = null;
             if (job.EnableEncryption && !string.IsNullOrEmpty(job.EncryptionKey))
             {
                 encryptor = new CryptoSoftEncryptorAdapter(job.EncryptionKey, _logWriter);
             }
 
+            // Sélection des fichiers (logique différentielle)
             var sourceFiles = sourceDir.GetFiles("*", SearchOption.AllDirectories);
             var filesToCopy = new List<FileInfo>();
             long totalSize = 0;
 
-            // Identifier les fichiers à copier
             foreach (var sourceFile in sourceFiles)
             {
                 var relativePath = Path.GetRelativePath(sourceDir.FullName, sourceFile.FullName);
@@ -196,65 +195,27 @@ namespace EasySave.Infrastructure
                 }
             }
 
+            // Initialiser l'état
             state.TotalFiles = filesToCopy.Count;
             state.TotalSizeBytes = totalSize;
             state.FilesRemaining = filesToCopy.Count;
 
-            int filesCopied = 0;
 
+            int filesCopied = 0;
             foreach (var file in filesToCopy)
             {
                 try
                 {
-                    var startTime = DateTime.Now;
-                    var relativePath = Path.GetRelativePath(sourceDir.FullName, file.FullName);
-                    var targetPath = Path.Combine(targetDir.FullName, relativePath);
-
-                    // Créer le répertoire de destination
-                    var targetFileDir = Path.GetDirectoryName(targetPath);
-                    if (!Directory.Exists(targetFileDir))
-                        Directory.CreateDirectory(targetFileDir);
-
-                    // Copier le fichier
-                    File.Copy(file.FullName, targetPath, true);
-
-                    var copyTime = (DateTime.Now - startTime).TotalMilliseconds;
-
-                    // Logger la copie
-                    _logWriter.WriteDailyLog(new LogEntry
-                    {
-                        Timestamp = DateTime.Now,
-                        BackupName = job.Name,
-                        SourcePathUNC = file.FullName,
-                        TargetPathUNC = targetPath,
-                        FileSizeBytes = file.Length,
-                        TransferTimeMs = (long)copyTime,
-                        //OperationType = "Copy"
-                    });
-
-                    // Crypter le fichier si nécessaire
-                    if (encryptor != null &&
-                        CryptoSoftEncryptorAdapter.ShouldEncrypt(targetPath, job.ExtensionsToEncrypt))
-                    {
-                        var encryptStart = DateTime.Now;
-                        int encryptTime = encryptor.EncryptFile(targetPath, job.Name);
-
-                        if (encryptTime < 0)
-                        {
-                            //_logWriter.WriteError(job.Name, targetPath,
-                                //"Échec du cryptage - fichier copié mais non crypté");
-                        }
-                    }
-
+                    ProcessFile(file, sourceDir, targetDir, job, encryptor);
                     filesCopied++;
                 }
                 catch (Exception ex)
                 {
-                    //_logWriter.WriteError(job.Name, file.FullName,
-                        //$"Erreur lors de la sauvegarde: {ex.Message}");
+                    Console.WriteLine($"Erreur sur {file.FullName}: {ex.Message}");
                 }
                 finally
                 {
+                    // state updating after each file
                     state.FilesRemaining = filesToCopy.Count - filesCopied;
                     state.ProgressPct = filesToCopy.Count > 0
                         ? (int)((filesCopied / (double)filesToCopy.Count) * 100)
@@ -262,7 +223,48 @@ namespace EasySave.Infrastructure
                     _stateWriter.WriteState(state);
                 }
             }
-        
         }
+
+        private void ProcessFile(FileInfo file, DirectoryInfo sourceDir, DirectoryInfo targetDir, BackupJob job, CryptoSoftEncryptorAdapter encryptor)
+        {
+            var startTime = DateTime.Now;
+            var relativePath = Path.GetRelativePath(sourceDir.FullName, file.FullName);
+            var targetPath = Path.Combine(targetDir.FullName, relativePath);
+
+            var targetFileDir = Path.GetDirectoryName(targetPath);
+            if (!Directory.Exists(targetFileDir))
+                Directory.CreateDirectory(targetFileDir);
+
+            // Copy
+            File.Copy(file.FullName, targetPath, true);
+            var copyTime = (DateTime.Now - startTime).TotalMilliseconds;
+
+            // Logger
+            _logWriter.WriteDailyLog(new LogEntry
+            {
+                Timestamp = DateTime.Now,
+                BackupName = job.Name,
+                SourcePathUNC = file.FullName,
+                TargetPathUNC = targetPath,
+                FileSizeBytes = file.Length,
+                TransferTimeMs = (long)copyTime
+            });
+
+            // Crypt
+            if (encryptor != null &&
+                CryptoSoftEncryptorAdapter.ShouldEncrypt(targetPath, job.ExtensionsToEncrypt))
+            {
+                int encryptTime = encryptor.EncryptFile(targetPath, job.Name);
+
+                if (encryptTime < 0)
+                {
+                    Console.WriteLine($"Échec du cryptage - {targetPath}");
+                }
+            }
+        }
+
     }
-}
+
+
+
+  }

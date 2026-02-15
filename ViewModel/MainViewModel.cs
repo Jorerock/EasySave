@@ -52,6 +52,7 @@ namespace EasySave.ViewModel
                     SourceDirectory = src,
                     TargetDirectory = dst,
                     EnableEncryption = EnableEncrypt,
+                    Type            = type,
                     EncryptionKey = Key,
                     ExtensionsToEncrypt = Extensions
                 };
