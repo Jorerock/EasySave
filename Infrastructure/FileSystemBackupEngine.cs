@@ -145,7 +145,6 @@ namespace EasySave.Infrastructure
                 //Todo Write State
             }
         }
-
         private void ExecuteDifferentialBackup(BackupJob job, StateEntry state)
         {
             var sourceDir = new DirectoryInfo(job.SourceDirectory);
@@ -156,6 +155,13 @@ namespace EasySave.Infrastructure
 
             if (!targetDir.Exists)
                 targetDir.Create();
+
+            // Initialiser l'encrypteur si nécessaire
+            CryptoSoftEncryptorAdapter encryptor = null;
+            if (job.EnableEncryption && !string.IsNullOrEmpty(job.EncryptionKey))
+            {
+                encryptor = new CryptoSoftEncryptorAdapter(job.EncryptionKey, _logWriter);
+            }
 
             var sourceFiles = sourceDir.GetFiles("*", SearchOption.AllDirectories);
             var filesToCopy = new List<FileInfo>();
@@ -176,7 +182,6 @@ namespace EasySave.Infrastructure
                 else
                 {
                     var targetFile = new FileInfo(targetPath);
-                    // Comparer taille ET date avec tolérance d'1 seconde
                     if (sourceFile.Length != targetFile.Length ||
                         Math.Abs((sourceFile.LastWriteTime - targetFile.LastWriteTime).TotalSeconds) > 1)
                     {
@@ -205,14 +210,17 @@ namespace EasySave.Infrastructure
                     var relativePath = Path.GetRelativePath(sourceDir.FullName, file.FullName);
                     var targetPath = Path.Combine(targetDir.FullName, relativePath);
 
+                    // Créer le répertoire de destination
                     var targetFileDir = Path.GetDirectoryName(targetPath);
                     if (!Directory.Exists(targetFileDir))
                         Directory.CreateDirectory(targetFileDir);
 
+                    // Copier le fichier
                     File.Copy(file.FullName, targetPath, true);
 
-                    var transferTime = (DateTime.Now - startTime).TotalMilliseconds;
+                    var copyTime = (DateTime.Now - startTime).TotalMilliseconds;
 
+                    // Logger la copie
                     _logWriter.WriteDailyLog(new LogEntry
                     {
                         Timestamp = DateTime.Now,
@@ -220,20 +228,33 @@ namespace EasySave.Infrastructure
                         SourcePathUNC = file.FullName,
                         TargetPathUNC = targetPath,
                         FileSizeBytes = file.Length,
-                        TransferTimeMs = (long)transferTime
+                        TransferTimeMs = (long)copyTime,
+                        //OperationType = "Copy"
                     });
+
+                    // Crypter le fichier si nécessaire
+                    if (encryptor != null &&
+                        CryptoSoftEncryptorAdapter.ShouldEncrypt(targetPath, job.ExtensionsToEncrypt))
+                    {
+                        var encryptStart = DateTime.Now;
+                        int encryptTime = encryptor.EncryptFile(targetPath, job.Name);
+
+                        if (encryptTime < 0)
+                        {
+                            //_logWriter.WriteError(job.Name, targetPath,
+                                //"Échec du cryptage - fichier copié mais non crypté");
+                        }
+                    }
 
                     filesCopied++;
                 }
                 catch (Exception ex)
                 {
-                    // Logger l'erreur mais continuer avec les autres fichiers
-                    //Todo repair _logWriter
-                    //_logWriter.WriteError(job.Name, file.FullName, ex.Message);
+                    //_logWriter.WriteError(job.Name, file.FullName,
+                        //$"Erreur lors de la sauvegarde: {ex.Message}");
                 }
                 finally
                 {
-                    // Mettre à jour l'état même en cas d'erreur
                     state.FilesRemaining = filesToCopy.Count - filesCopied;
                     state.ProgressPct = filesToCopy.Count > 0
                         ? (int)((filesCopied / (double)filesToCopy.Count) * 100)
@@ -241,6 +262,7 @@ namespace EasySave.Infrastructure
                     _stateWriter.WriteState(state);
                 }
             }
+        
         }
     }
 }

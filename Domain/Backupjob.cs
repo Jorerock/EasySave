@@ -8,5 +8,9 @@
         public string TargetDirectory { get; set; } = string.Empty;
         public BackupType Type { get; set; }
         public DateTime LastRunUtc { get; set; } = DateTime.UtcNow;
+        public bool EnableEncryption { get; set; }
+        public List<string> ExtensionsToEncrypt { get; set; } = new List<string>();
+        public string? EncryptionKey { get; set; }
+
     }
 }
