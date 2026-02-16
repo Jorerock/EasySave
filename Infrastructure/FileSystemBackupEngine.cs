@@ -23,8 +23,35 @@ namespace EasySave.Infrastructure
         }
 
 
+       
         public void Run(BackupJob job)
         {
+            // 1. Vérification via le détecteur injecté
+            if (_businessSoftwareDetector.IsBlocked())
+            {
+                // 2. Création de l'état bloqué
+                StateEntry blockedState = new StateEntry
+                {
+                    State = JobRunState.BlockedByBusinessSoftware,
+                    // ... autres infos de progression à 0
+                };
+                _stateWriter.WriteState(blockedState);
+
+                // 3. Consignation dans le Log (comme demandé)
+                LogEntry log = new LogEntry
+                {
+                    BackupName = job.Name,
+                    Timestamp = DateTime.Now,
+                    SourcePathUNC = job.SourceDirectory,
+                    TargetPathUNC = job.TargetDirectory,
+                    TransferTimeMs = -1
+                };
+                _logWriter.WriteDailyLog(log);
+
+                return; // On arrête l'exécution ici
+            }
+
+            // ... sinon, continuer la sauvegarde normale
             if (job == null)
                 throw new ArgumentNullException(nameof(job));
 
