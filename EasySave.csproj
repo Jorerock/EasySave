@@ -5,15 +5,20 @@
 		<TargetFramework>net10.0</TargetFramework>
 		<ImplicitUsings>enable</ImplicitUsings>
 		<Nullable>enable</Nullable>
+
+		<!-- Important: garder l'exclusion des bin/obj même si le dossier est dans le repo -->
+		<DefaultItemExcludes>$(DefaultItemExcludes);**\bin\**;**\obj\**;**\.vs\**</DefaultItemExcludes>
 	</PropertyGroup>
 
-	<!-- IMPORTANT : ne pas compiler le code source d'EasyLog -->
+	<!-- Ne PAS compiler les sources EasyLog dans EasySave (sinon conflits) -->
 	<ItemGroup>
 		<Compile Remove="external\EasyLog\**\*.cs" />
 		<EmbeddedResource Remove="external\EasyLog\**\*" />
+		<None Remove="external\EasyLog\**\*" />
 	</ItemGroup>
 
-	<!-- Référence DLL EasyLog -->
+	<!-- Référence PROPRE vers le projet EasyLog -->
+	
 	<ItemGroup>
 		<Reference Include="CryptoSoft">
 		  <HintPath>external\CryptoSoft.dll</HintPath>
@@ -24,5 +29,4 @@
 			<HintPath>external\EasyLog\bin\Debug\net10.0\EasyLog.dll</HintPath>
 		</Reference>
 	</ItemGroup>
-
 </Project>
