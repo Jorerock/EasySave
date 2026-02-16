@@ -1,0 +1,29 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+	  <TargetFramework>net10.0-windows7.0</TargetFramework>
+	  <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UseWPF>true</UseWPF>
+  </PropertyGroup>
+
+
+
+  <ItemGroup>
+    <ProjectReference Include="..\EasySave.Core\EasySave.Core.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+	  <FrameworkReference Include="Microsoft.WindowsDesktop.App.WPF" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="CryptoSoft">
+      <HintPath>..\external\CryptoSoft.dll</HintPath>
+    </Reference>
+    <Reference Include="EasyLog">
+      <HintPath>..\external\EasyLog.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+</Project>
