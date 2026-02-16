@@ -91,68 +91,60 @@ namespace EasySave.Infrastructure
                 throw;
             }
         }
-
         private void ExecuteFullBackup(BackupJob job, StateEntry state)
         {
+            // Validate and prepare directories
             var sourceDir = new DirectoryInfo(job.SourceDirectory);
             var targetDir = new DirectoryInfo(job.TargetDirectory);
 
             if (!sourceDir.Exists)
-                throw new DirectoryNotFoundException($"Répertoire source introuvable: {job.SourceDirectory}");
+                throw new DirectoryNotFoundException($"Source directory not found: {job.SourceDirectory}");
 
             if (!targetDir.Exists)
                 targetDir.Create();
 
+            // Initialize encryptor if encryption is enabled
+            CryptoSoftEncryptorAdapter encryptor = null;
+            if (job.EnableEncryption && !string.IsNullOrEmpty(job.EncryptionKey))
+            {
+                encryptor = new CryptoSoftEncryptorAdapter(job.EncryptionKey, _logWriter);
+            }
+
+            // Select ALL files for full backup
             var files = sourceDir.GetFiles("*", SearchOption.AllDirectories);
+
+            // Initialize state
             state.TotalFiles = files.Length;
             state.TotalSizeBytes = files.Sum(f => f.Length);
             state.FilesRemaining = files.Length;
-            state.SizeRemainingBytes = state.TotalSizeBytes;
-            state.Timestamp = DateTime.UtcNow;
-            _stateWriter.WriteState(state);
 
+            // Process each file
             int filesCopied = 0;
-
             foreach (var file in files)
             {
-                var startTime = DateTime.UtcNow;
-
-                // Calculer le chemin relatif
-                var relativePath = Path.GetRelativePath(sourceDir.FullName, file.FullName);
-                var targetPath = Path.Combine(targetDir.FullName, relativePath);
-
-                // Créer le répertoire de destination si nécessaire
-                var targetFileDir = Path.GetDirectoryName(targetPath);
-                if (!Directory.Exists(targetFileDir))
-                    Directory.CreateDirectory(targetFileDir);
-
-                // Copier le fichier
-                File.Copy(file.FullName, targetPath, true);
-
-                var transferTime = (DateTime.UtcNow - startTime).TotalMilliseconds;
-
-                // Log du fichier copié
-                _logWriter.WriteDailyLog(new LogEntry
+                try
                 {
-                    Timestamp = DateTime.UtcNow,
-                    BackupName = job.Name,
-                    SourcePathUNC = file.FullName,
-                    TargetPathUNC = targetPath,
-                    FileSizeBytes = file.Length,
-                    TransferTimeMs = (long)transferTime
-                });
-
-                // Mise à jour de la progression
-                filesCopied++;
-                state.FilesRemaining = files.Length - filesCopied;
-                state.SizeRemainingBytes = Math.Max(0, state.SizeRemainingBytes - file.Length);
-                state.ProgressPct = files.Length == 0 ? 100 : (int)((filesCopied / (double)files.Length) * 100);
-                state.Timestamp = DateTime.UtcNow;
-                state.CurrentSourceUNC = file.FullName;
-                state.CurrentTargetUNC = targetPath;
-                _stateWriter.WriteState(state);
+                    // Process single file
+                    ProcessFile(file, sourceDir, targetDir, job, encryptor);
+                    filesCopied++;
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Error processing file {file.FullName}: {ex.Message}");
+                }
+                finally
+                {
+                    // Update progress
+                    state.FilesRemaining = files.Length - filesCopied;
+                    state.ProgressPct = files.Length > 0
+                        ? (int)((filesCopied / (double)files.Length) * 100)
+                        : 0;
+                    _stateWriter.WriteState(state);
+                }
             }
         }
+
+
 
         private void ExecuteDifferentialBackup(BackupJob job, StateEntry state)
         {
@@ -165,72 +157,119 @@ namespace EasySave.Infrastructure
             if (!targetDir.Exists)
                 targetDir.Create();
 
+            // Encryptor initialization
+            CryptoSoftEncryptorAdapter encryptor = null;
+            if (job.EnableEncryption && !string.IsNullOrEmpty(job.EncryptionKey))
+            {
+                encryptor = new CryptoSoftEncryptorAdapter(job.EncryptionKey, _logWriter);
+            }
+
+            // Sélection des fichiers (logique différentielle)
             var sourceFiles = sourceDir.GetFiles("*", SearchOption.AllDirectories);
             var filesToCopy = new List<FileInfo>();
+            long totalSize = 0;
 
-            // Ne copier que les fichiers nouveaux ou modifiés
             foreach (var sourceFile in sourceFiles)
             {
                 var relativePath = Path.GetRelativePath(sourceDir.FullName, sourceFile.FullName);
                 var targetPath = Path.Combine(targetDir.FullName, relativePath);
 
+                bool shouldCopy = false;
+
                 if (!File.Exists(targetPath))
                 {
-                    filesToCopy.Add(sourceFile);
+                    shouldCopy = true;
                 }
                 else
                 {
                     var targetFile = new FileInfo(targetPath);
-                    if (sourceFile.LastWriteTime > targetFile.LastWriteTime)
+                    if (sourceFile.Length != targetFile.Length ||
+                        Math.Abs((sourceFile.LastWriteTime - targetFile.LastWriteTime).TotalSeconds) > 1)
                     {
-                        filesToCopy.Add(sourceFile);
+                        shouldCopy = true;
                     }
+                }
+
+                if (shouldCopy)
+                {
+                    filesToCopy.Add(sourceFile);
+                    totalSize += sourceFile.Length;
                 }
             }
 
+            // Initialiser l'état
             state.TotalFiles = filesToCopy.Count;
-            state.TotalSizeBytes = filesToCopy.Sum(f => f.Length);
+            state.TotalSizeBytes = totalSize;
             state.FilesRemaining = filesToCopy.Count;
             state.SizeRemainingBytes = state.TotalSizeBytes;
             state.Timestamp = DateTime.UtcNow;
             _stateWriter.WriteState(state);
 
-            int filesCopied = 0;
 
+            int filesCopied = 0;
             foreach (var file in filesToCopy)
             {
-                var startTime = DateTime.UtcNow;
-
-                var relativePath = Path.GetRelativePath(sourceDir.FullName, file.FullName);
-                var targetPath = Path.Combine(targetDir.FullName, relativePath);
-
-                var targetFileDir = Path.GetDirectoryName(targetPath);
-                if (!Directory.Exists(targetFileDir))
-                    Directory.CreateDirectory(targetFileDir);
-
-                File.Copy(file.FullName, targetPath, true);
-
-                var transferTime = (DateTime.UtcNow - startTime).TotalMilliseconds;
-
-                _logWriter.WriteDailyLog(new LogEntry
+                try
                 {
-                    Timestamp = DateTime.UtcNow,
-                    BackupName = job.Name,
-                    SourcePathUNC = file.FullName,
-                    TargetPathUNC = targetPath,
-                    FileSizeBytes = file.Length,
-                    TransferTimeMs = (long)transferTime
-                });
-
-                filesCopied++;
-                state.FilesRemaining = filesToCopy.Count - filesCopied;
-                state.SizeRemainingBytes = Math.Max(0, state.SizeRemainingBytes - file.Length);
-                state.ProgressPct = filesToCopy.Count == 0 ? 100 : (int)((filesCopied / (double)filesToCopy.Count) * 100);
-                state.Timestamp = DateTime.UtcNow;
-                state.CurrentSourceUNC = file.FullName;
-                state.CurrentTargetUNC = targetPath;
-                _stateWriter.WriteState(state);
+                    ProcessFile(file, sourceDir, targetDir, job, encryptor);
+                    filesCopied++;
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Erreur sur {file.FullName}: {ex.Message}");
+                }
+                finally
+                {
+                    // state updating after each file
+                    state.FilesRemaining = filesToCopy.Count - filesCopied;
+                    state.ProgressPct = filesToCopy.Count > 0
+                        ? (int)((filesCopied / (double)filesToCopy.Count) * 100)
+                        : 0;
+                    _stateWriter.WriteState(state);
+                }
             }
         }
+
+        private void ProcessFile(FileInfo file, DirectoryInfo sourceDir, DirectoryInfo targetDir, BackupJob job, CryptoSoftEncryptorAdapter encryptor)
+        {
+            var startTime = DateTime.Now;
+            var relativePath = Path.GetRelativePath(sourceDir.FullName, file.FullName);
+            var targetPath = Path.Combine(targetDir.FullName, relativePath);
+
+            var targetFileDir = Path.GetDirectoryName(targetPath);
+            if (!Directory.Exists(targetFileDir))
+                Directory.CreateDirectory(targetFileDir);
+
+            // Copy
+            File.Copy(file.FullName, targetPath, true);
+            var copyTime = (DateTime.Now - startTime).TotalMilliseconds;
+
+            // Logger
+            _logWriter.WriteDailyLog(new LogEntry
+            {
+                Timestamp = DateTime.Now,
+                BackupName = job.Name,
+                SourcePathUNC = file.FullName,
+                TargetPathUNC = targetPath,
+                FileSizeBytes = file.Length,
+                TransferTimeMs = (long)copyTime
+            });
+
+            // Crypt
+            if (encryptor != null &&
+                CryptoSoftEncryptorAdapter.ShouldEncrypt(targetPath, job.ExtensionsToEncrypt))
+            {
+                int encryptTime = encryptor.EncryptFile(targetPath, job.Name);
+
+                if (encryptTime < 0)
+                {
+                    Console.WriteLine($"Échec du cryptage - {targetPath}");
+                }
+            }
+        }
+
     }
-}
+
+
+
+  }
