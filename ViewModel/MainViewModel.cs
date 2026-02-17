@@ -1,5 +1,5 @@
-﻿using EasySave.Application;
-using EasySave.Domain;
+﻿using EasySave.Core.Application;
+using EasySave.Core.Domain;
 using System.Collections.Generic;
 
 namespace EasySave.ViewModel

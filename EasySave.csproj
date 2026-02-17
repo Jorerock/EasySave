@@ -14,25 +14,21 @@
 	<ItemGroup>
 		<Compile Remove="EasySave.Core\**" />
 		<Compile Remove="EasySaveWPF\**" />
-		<Compile Remove="external\EasyLog\**\*.cs" />
 		<EmbeddedResource Remove="EasySave.Core\**" />
 		<EmbeddedResource Remove="EasySaveWPF\**" />
-		<EmbeddedResource Remove="external\EasyLog\**\*" />
-		<None Remove="external\EasyLog\**\*" />
 		<None Remove="EasySave.Core\**" />
 		<None Remove="EasySaveWPF\**" />
 	</ItemGroup>
-
-	<!-- Référence PROPRE vers le projet EasyLog -->
-	
 	<ItemGroup>
-		<Reference Include="CryptoSoft">
-		  <HintPath>external\CryptoSoft.dll</HintPath>
-		</Reference>
-		<Reference Include="EasyLog">
-			
-			<!-- Le chemin ne devrait pas pointer vers \Debug\ seul la realease existe en production-->
-			<HintPath>external\EasyLog\bin\Debug\net10.0\EasyLog.dll</HintPath>
-		</Reference>
+	  <ProjectReference Include="EasySave.Core\EasySave.Core.csproj" />
 	</ItemGroup>
+	<ItemGroup>
+	  <Reference Include="CryptoSoft">
+	    <HintPath>EasySave.Core\external\CryptoSoft.dll</HintPath>
+	  </Reference>
+	  <Reference Include="EasyLog">
+	    <HintPath>EasySave.Core\external\EasyLog.dll</HintPath>
+	  </Reference>
+	</ItemGroup>
+
 </Project>

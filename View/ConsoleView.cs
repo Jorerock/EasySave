@@ -1,4 +1,4 @@
-﻿using EasySave.Domain;
+﻿using EasySave.Core.Domain;
 using EasySave.ViewModel;
 using System;
 using System.Collections.Generic;

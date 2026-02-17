@@ -43,7 +43,7 @@ namespace EasySave.Core.Infrastructure
             catch (Exception ex)
             {
                 //_logWriter.WriteError(backupName, inputFilePath, $"Erreur cryptage: {ex.Message}");
-                //Console.WriteLine(ex.ToString());
+                Console.WriteLine(ex.ToString());
                 return -1;
             }
         }

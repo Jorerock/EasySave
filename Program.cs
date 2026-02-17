@@ -3,8 +3,8 @@ using System.Collections.Generic;
 using System.IO;
 using EasyLog.Interfaces;
 using EasyLog.Writers;
-using EasySave.Application;
-using EasySave.Infrastructure;
+using EasySave.Core.Application;
+using EasySave.Core.Infrastructure;
 using EasySave.View;
 using EasySave.ViewModel;
 
