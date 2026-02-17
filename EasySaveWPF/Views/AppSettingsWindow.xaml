@@ -34,9 +34,10 @@
         <StackPanel Grid.Row="0" Margin="0,5">
             <TextBlock FontWeight="Bold" FontFamily="Cascadia Mono" FontSize="13"
                        Text="Extensions To Encrypt"/>
-            <TextBox x:Name="JobNameTextBox" Margin="0,5" Height="30"
-                     ToolTip="Tapez une extension et appuyez sur Entrée (ex: .docx)"
-                     KeyDown="ExtensionTextBox_KeyDown"/>
+            <CheckBox Content=".txt"/>
+            <CheckBox Content=".csv"/>
+            <CheckBox Content=".png"/>
+            <CheckBox Content=".jpg"/>
             <!-- Liste dynamique des extensions cochées -->
             <ItemsControl x:Name="ExtensionsListBox" Margin="0,5">
                 <ItemsControl.ItemTemplate>
