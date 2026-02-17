@@ -2,9 +2,10 @@
 // Infrastructure/FileSystemBackupEngine.cs
 using EasySave.Application;
 using EasySave.Domain;
-using EasyLog; // Référence à la DLL
 using System;
+using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using EasyLog.Interfaces;
 using EasyLog.Entries;
 
@@ -28,33 +29,27 @@ namespace EasySave.Infrastructure
             if (job == null)
                 throw new ArgumentNullException(nameof(job));
 
+            // State must be written in (near) real-time to a SINGLE state.json file.
+            // Logs must be written to a daily JSON file.
+            var state = new StateEntry
+            {
+                Timestamp = DateTime.UtcNow,
+                BackupName = job.Name,
+                CurrentSourceUNC = job.SourceDirectory,
+                CurrentTargetUNC = job.TargetDirectory,
+                State = JobRunState.Active,
+                TotalFiles = 0,
+                TotalSizeBytes = 0,
+                FilesRemaining = 0,
+                SizeRemainingBytes = 0,
+                ProgressPct = 0
+            };
+
             try
             {
-                // Créer l'état initial
-                var state = new StateEntry
-                {
-                    BackupName = job.Name,
-                    CurrentSourceUNC = job.SourceDirectory,
-                    CurrentTargetUNC = job.TargetDirectory,
-                    State = JobRunState.Active,
-                    TotalFiles = 0,
-                    TotalSizeBytes = 0,
-                    FilesRemaining = 0,
-                    ProgressPct = 0
-                };
+                _stateWriter.WriteState(state);
 
-                // Log de début
-                _logWriter.WriteDailyLog(new LogEntry
-                {
-                    Timestamp = DateTime.Now,
-                    BackupName = job.Name,
-                    SourcePathUNC = job.SourceDirectory,
-                    TargetPathUNC = job.TargetDirectory,
-                    FileSizeBytes = 0,
-                    TransferTimeMs = 0
-                });
-
-                // Exécuter la sauvegarde selon le type
+                // Execute the backup according to its type
                 switch (job.Type)
                 {
                     case BackupType.Full:
@@ -64,28 +59,35 @@ namespace EasySave.Infrastructure
                         ExecuteDifferentialBackup(job, state);
                         break;
                     default:
-                        throw new NotSupportedException($"Type de backup non supporté: {job.Type}");
+                        throw new NotSupportedException($"Unsupported backup type: {job.Type}");
                 }
 
-                // Mettre à jour l'état final
+                state.Timestamp = DateTime.UtcNow;
                 state.State = JobRunState.Completed;
                 state.ProgressPct = 100;
-                //_stateWriter.WriteState(state);
-                //Todo Write State
+                state.FilesRemaining = 0;
+                state.SizeRemainingBytes = 0;
+                _stateWriter.WriteState(state);
             }
             catch (Exception ex)
             {
-                // Log d'erreur
+                // Mark job as failed in state file
+                state.Timestamp = DateTime.UtcNow;
+                state.State = JobRunState.Failed;
+                _stateWriter.WriteState(state);
+
+                // Log error: TransferTimeMs must be negative on error
                 _logWriter.WriteDailyLog(new LogEntry
                 {
-                    Timestamp = DateTime.Now,
+                    Timestamp = DateTime.UtcNow,
                     BackupName = job.Name,
                     SourcePathUNC = job.SourceDirectory,
-                    TargetPathUNC = $"ERROR: {ex.Message}",
+                    TargetPathUNC = job.TargetDirectory,
                     FileSizeBytes = 0,
-                    TransferTimeMs = 0
+                    TransferTimeMs = -1
                 });
 
+                // Preserve stack trace
                 throw;
             }
         }
@@ -199,6 +201,9 @@ namespace EasySave.Infrastructure
             state.TotalFiles = filesToCopy.Count;
             state.TotalSizeBytes = totalSize;
             state.FilesRemaining = filesToCopy.Count;
+            state.SizeRemainingBytes = state.TotalSizeBytes;
+            state.Timestamp = DateTime.UtcNow;
+            _stateWriter.WriteState(state);
 
 
             int filesCopied = 0;
