@@ -76,6 +76,7 @@ namespace EasySave.Core.Infrastructure
                 // Log error: TransferTimeMs must be negative on error
                 _logWriter.WriteDailyLog(new LogEntry
                 {
+                    Message = " Log error: TransferTimeMs must be negative on error",
                     Timestamp = DateTime.UtcNow,
                     BackupName = job.Name,
                     SourcePathUNC = job.SourceDirectory,
@@ -161,7 +162,7 @@ namespace EasySave.Core.Infrastructure
                 encryptor = new CryptoSoftEncryptorAdapter(job.EncryptionKey, _logWriter);
             }
 
-            // Sélection des fichiers (logique différentielle)
+            // Select files (Differential)
             var sourceFiles = sourceDir.GetFiles("*", SearchOption.AllDirectories);
             var filesToCopy = new List<FileInfo>();
             long totalSize = 0;
@@ -194,7 +195,7 @@ namespace EasySave.Core.Infrastructure
                 }
             }
 
-            // Initialiser l'état
+            // State inizialization
             state.TotalFiles = filesToCopy.Count;
             state.TotalSizeBytes = totalSize;
             state.FilesRemaining = filesToCopy.Count;
@@ -236,37 +237,34 @@ namespace EasySave.Core.Infrastructure
             var targetFileDir = Path.GetDirectoryName(targetPath);
             if (!Directory.Exists(targetFileDir))
                 Directory.CreateDirectory(targetFileDir);
-
             // Copy
             File.Copy(file.FullName, targetPath, true);
             var copyTime = (DateTime.Now - startTime).TotalMilliseconds;
 
-            // Logger
-            _logWriter.WriteDailyLog(new LogEntry
-            {
-                Timestamp = DateTime.Now,
-                BackupName = job.Name,
-                SourcePathUNC = file.FullName,
-                TargetPathUNC = targetPath,
-                FileSizeBytes = file.Length,
-                TransferTimeMs = (long)copyTime
-            });
-
             // Crypt
+            int encryptTime = 0;
             if (encryptor != null &&
                 CryptoSoftEncryptorAdapter.ShouldEncrypt(targetPath, job.ExtensionsToEncrypt))
             {
-                int encryptTime = encryptor.EncryptFile(targetPath, job.Name);
+                encryptTime = encryptor.EncryptFile(targetPath, job.Name);
 
                 if (encryptTime < 0)
                 {
                     Console.WriteLine($"Échec du cryptage - {targetPath}");
                 }
             }
+            // Logger
+            _logWriter.WriteDailyLog(new LogEntry
+            {
+                Message = "Operation type : Copy File",
+                Timestamp = DateTime.Now,
+                BackupName = job.Name,
+                SourcePathUNC = file.FullName,
+                TargetPathUNC = targetPath,
+                FileSizeBytes = file.Length,
+                TransferTimeMs = (long)copyTime,
+                EncryptionTimeMs = encryptTime,
+            });
         }
-
     }
-
-
-
   }

@@ -25,19 +25,6 @@ namespace EasySave.Core.Infrastructure
 
                 var manager = new FileManager(inputFilePath, _key);
                 int elapsedMs = manager.TransformFile();
-
-                // crypt log
-                //_logWriter.WriteDailyLog(new LogEntry
-                //{
-                //    Timestamp = DateTime.Now,
-                //    BackupName = backupName,
-                //    SourcePathUNC = inputFilePath,
-                //    TargetPathUNC = inputFilePath, // Le fichier est crypté sur place
-                //    FileSizeBytes = new FileInfo(inputFilePath).Length,
-                //    TransferTimeMs = elapsedMs,
-                //    OperationType = "Encryption"
-                //});
-
                 return elapsedMs;
             }
             catch (Exception ex)
