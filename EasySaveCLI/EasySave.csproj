@@ -20,15 +20,16 @@
 		<None Remove="EasySaveWPF\**" />
 	</ItemGroup>
 	<ItemGroup>
-	  <ProjectReference Include="EasySave.Core\EasySave.Core.csproj" />
+	  <ProjectReference Include="..\EasySave.Core\EasySave.Core.csproj" />
 	</ItemGroup>
 	<ItemGroup>
 	  <Reference Include="CryptoSoft">
-	    <HintPath>EasySave.Core\external\CryptoSoft.dll</HintPath>
+	    <HintPath>..\EasySave.Core\external\CryptoSoft.dll</HintPath>
 	  </Reference>
 	  <Reference Include="EasyLog">
-	    <HintPath>EasySave.Core\external\EasyLog.dll</HintPath>
+	    <HintPath>..\EasySave.Core\external\EasyLog.dll</HintPath>
 	  </Reference>
 	</ItemGroup>
+
 
 </Project>
