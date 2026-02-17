@@ -1,5 +1,6 @@
-﻿using System.Windows;
+﻿using EasySave.Core.Domain;
 using EasySave.WPF.ViewModels;
+using System.Windows;
 
 namespace EasySave.WPF.Views  // ← Doit correspondre au x:Class dans XAML
 {
@@ -14,9 +15,6 @@ namespace EasySave.WPF.Views  // ← Doit correspondre au x:Class dans XAML
 
         private void CreateJob_Click(object sender, RoutedEventArgs e)
         {
-            // Ajoutez un breakpoint ici pour vérifier si la méthode est appelée
-            MessageBox.Show("Button clicked!"); // Test temporaire
-            
             var createWindow = new Views.CreateJobWindow
             {
                 Owner = this
@@ -32,6 +30,29 @@ namespace EasySave.WPF.Views  // ← Doit correspondre au x:Class dans XAML
                     MessageBox.Show(ViewModel.StatusMessage, "Success",
                         MessageBoxButton.OK, MessageBoxImage.Information);
                 }
+            }
+        }
+
+
+
+        private void AppSettings_Click(object sender, RoutedEventArgs e)
+        {
+            // Récupère les settings courants depuis le ViewModel (à adapter selon votre architecture)
+            var currentSettings = ViewModel.CurrentSettings
+                ?? new AppSettings(AppLanguage.Anglais);
+
+            var settingsWindow = new AppSettingsWindow(currentSettings)
+            {
+                Owner = this
+            };
+
+            if (settingsWindow.ShowDialog() == true)
+            {
+                // Transmet les nouveaux settings au ViewModel
+                ViewModel.ApplySettings(settingsWindow.AppSettings);
+
+                MessageBox.Show("Settings saved successfully.", "Settings",
+                    MessageBoxButton.OK, MessageBoxImage.Information);
             }
         }
     }
