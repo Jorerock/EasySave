@@ -1,14 +1,14 @@
-﻿using EasySave.Domain;
+﻿using EasySave.Core.Domain;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace EasySave.Application
+namespace EasySave.Core.Application
 {
     public sealed class JobManager
     {
         private readonly IJobRepository _repo;
-        private const int MaxJobs = 5;
+        //private const int MaxJobs = 5;
 
         public JobManager(IJobRepository repo)
         {
@@ -25,10 +25,10 @@ namespace EasySave.Application
             if (job == null) throw new ArgumentNullException(nameof(job));
 
             List<BackupJob> jobs = _repo.LoadAll();
-            if (jobs.Count >= MaxJobs)
-            {
-                throw new InvalidOperationException("Nombre maximum de travaux atteint.");
-            }
+            //if (jobs.Count >= MaxJobs)
+            //{
+            //    throw new InvalidOperationException("Nombre maximum de travaux atteint.");
+            //}
 
             // Auto-assign ID si non fourni
             if (job.Id <= 0)

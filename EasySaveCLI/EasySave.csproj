@@ -1,0 +1,35 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<OutputType>Exe</OutputType>
+		<TargetFramework>net10.0</TargetFramework>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<Nullable>enable</Nullable>
+
+		<!-- Important: garder l'exclusion des bin/obj même si le dossier est dans le repo -->
+		<DefaultItemExcludes>$(DefaultItemExcludes);**\bin\**;**\obj\**;**\.vs\**</DefaultItemExcludes>
+	</PropertyGroup>
+
+	<!-- Ne PAS compiler les sources EasyLog dans EasySave (sinon conflits) -->
+	<ItemGroup>
+		<Compile Remove="EasySave.Core\**" />
+		<Compile Remove="EasySaveWPF\**" />
+		<EmbeddedResource Remove="EasySave.Core\**" />
+		<EmbeddedResource Remove="EasySaveWPF\**" />
+		<None Remove="EasySave.Core\**" />
+		<None Remove="EasySaveWPF\**" />
+	</ItemGroup>
+	<ItemGroup>
+	  <ProjectReference Include="..\EasySave.Core\EasySave.Core.csproj" />
+	</ItemGroup>
+	<ItemGroup>
+	  <Reference Include="CryptoSoft">
+	    <HintPath>..\EasySave.Core\external\CryptoSoft.dll</HintPath>
+	  </Reference>
+	  <Reference Include="EasyLog">
+	    <HintPath>..\EasySave.Core\external\EasyLog.dll</HintPath>
+	  </Reference>
+	</ItemGroup>
+
+
+</Project>

@@ -1,7 +1,7 @@
-﻿using EasySave.Domain;
+﻿using EasySave.Core.Domain;
 using System.Collections.Generic;
 
-namespace EasySave.Application
+namespace EasySave.Core.Application
 {
     public interface IJobRepository
     {

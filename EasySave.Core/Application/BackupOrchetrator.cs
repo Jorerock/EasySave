@@ -1,16 +1,16 @@
-﻿using EasySave.Domain;
+﻿using EasySave.Core.Domain;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace EasySave.Application
+namespace EasySave.Core.Application
 {
     public sealed class BackupOrchestrator
     {
         private readonly IJobRepository _repo;
         private readonly IBackupEngine _engine;
 
-        internal BackupOrchestrator(IJobRepository repo, IBackupEngine engine)
+        public BackupOrchestrator(IJobRepository repo, IBackupEngine engine)
         {
             _repo = repo ?? throw new ArgumentNullException(nameof(repo));
             _engine = engine ?? throw new ArgumentNullException(nameof(engine));
@@ -27,6 +27,10 @@ namespace EasySave.Application
             }
 
             _engine.Run(job);
+
+            // Persist last run timestamp (UTC) for diagnostics/support.
+            job.LastRunUtc = DateTime.UtcNow;
+            _repo.SaveAll(jobs);
         }
 
         public void RunMany(List<int> ids)
@@ -46,7 +50,10 @@ namespace EasySave.Application
                     throw new InvalidOperationException($"Le job avec l'ID {id} n'existe pas.");
                 }
                 _engine.Run(job);
+                job.LastRunUtc = DateTime.UtcNow;
             }
+
+            _repo.SaveAll(jobs);
         }
 
         public void RunAll()
@@ -60,7 +67,10 @@ namespace EasySave.Application
             foreach (BackupJob job in jobs)
             {
                 _engine.Run(job);
+                job.LastRunUtc = DateTime.UtcNow;
             }
+
+            _repo.SaveAll(jobs);
         }
 
         public void RunAllSequential()

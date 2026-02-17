@@ -1,5 +1,5 @@
-﻿using EasySave.Application;
-using EasySave.Domain;
+﻿using EasySave.Core.Application;
+using EasySave.Core.Domain;
 using System.Collections.Generic;
 
 namespace EasySave.ViewModel
@@ -34,7 +34,7 @@ namespace EasySave.ViewModel
 
         // ── Actions ─────────────────────────────
 
-        public void CreateJob(string name, string src, string dst, BackupType type)
+        public void CreateJob(string name, string src, string dst, BackupType type, bool EnableEncrypt, string? Key, List<string> Extensions)
         {
             ClearMessages();
 
@@ -51,7 +51,10 @@ namespace EasySave.ViewModel
                     Name = name,
                     SourceDirectory = src,
                     TargetDirectory = dst,
-                    Type = type
+                    EnableEncryption = EnableEncrypt,
+                    Type            = type,
+                    EncryptionKey = Key,
+                    ExtensionsToEncrypt = Extensions
                 };
 
                 _jobs.Add(job);

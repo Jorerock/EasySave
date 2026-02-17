@@ -1,15 +1,16 @@
-﻿using EasySave.Domain;
-using System;
+﻿using System;
 using System.Collections.Generic;
-using System.Text;
+using System.IO;
 using System.Text.Json;
+using EasySave.Core.Application;
+using EasySave.Core.Domain;
 
-namespace EasySave.Infrastructure
+namespace EasySave.Core.Infrastructure
 {
     /// <summary>
-    /// Implémentation JSON du repository de jobs
+    /// Implémentation JSON du repository de jobs.
     /// </summary>
-    internal class JsonJobRepository : Application.IJobRepository
+    public sealed class JsonJobRepository : IJobRepository
     {
         private readonly string _configPath;
 
@@ -17,10 +18,7 @@ namespace EasySave.Infrastructure
         {
             if (string.IsNullOrWhiteSpace(configPath))
             {
-                throw new ArgumentException(
-                    "Le chemin du fichier de configuration est invalide.",
-                    nameof(configPath)
-                );
+                throw new ArgumentException("Le chemin du fichier de configuration est invalide.", nameof(configPath));
             }
 
             _configPath = configPath;
@@ -34,21 +32,18 @@ namespace EasySave.Infrastructure
             }
 
             string jsonContent = File.ReadAllText(_configPath);
-
             if (string.IsNullOrWhiteSpace(jsonContent))
             {
                 return new List<BackupJob>();
             }
 
-            List<BackupJob>? jobs =
-                JsonSerializer.Deserialize<List<BackupJob>>(jsonContent);
-
-            if (jobs == null)
+            JsonSerializerOptions options = new JsonSerializerOptions
             {
-                return new List<BackupJob>();
-            }
+                PropertyNameCaseInsensitive = true
+            };
 
-            return jobs;
+            List<BackupJob>? jobs = JsonSerializer.Deserialize<List<BackupJob>>(jsonContent, options);
+            return jobs ?? new List<BackupJob>();
         }
 
         public void SaveAll(List<BackupJob> jobs)
@@ -63,11 +58,15 @@ namespace EasySave.Infrastructure
                 WriteIndented = true
             };
 
-            string jsonContent =
-                JsonSerializer.Serialize<List<BackupJob>>(jobs, options);
+            string jsonContent = JsonSerializer.Serialize(jobs, options);
+
+            string? dir = Path.GetDirectoryName(_configPath);
+            if (!string.IsNullOrWhiteSpace(dir))
+            {
+                Directory.CreateDirectory(dir);
+            }
 
             File.WriteAllText(_configPath, jsonContent);
         }
     }
 }
-

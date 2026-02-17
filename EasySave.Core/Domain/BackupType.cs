@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace EasySave.Domain
+namespace EasySave.Core.Domain
 {
     public enum BackupType
     {

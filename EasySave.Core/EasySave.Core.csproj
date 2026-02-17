@@ -1,17 +1,19 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <OutputType>Exe</OutputType>
     <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
-  
-
   <ItemGroup>
-    <Folder Include="ViewModel\" />
+    <Reference Include="CryptoSoft">
+      <HintPath>external\CryptoSoft.dll</HintPath>
+    </Reference>
+    <Reference Include="EasyLog">
+      <HintPath>external\EasyLog.dll</HintPath>
+    </Reference>
   </ItemGroup>
 
- 
+
 </Project>
