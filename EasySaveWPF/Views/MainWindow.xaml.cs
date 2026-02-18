@@ -37,9 +37,9 @@ namespace EasySave.WPF.Views  // ← Doit correspondre au x:Class dans XAML
 
         private void AppSettings_Click(object sender, RoutedEventArgs e)
         {
-            // Récupère les settings courants depuis le ViewModel (à adapter selon votre architecture)
+            // get the settings from the ViewModel to pass to the settings window
             var currentSettings = ViewModel.CurrentSettings
-                ?? new AppSettings(AppLanguage.Anglais);
+                ?? new AppSettings();
 
             var settingsWindow = new AppSettingsWindow(currentSettings)
             {
@@ -48,12 +48,13 @@ namespace EasySave.WPF.Views  // ← Doit correspondre au x:Class dans XAML
 
             if (settingsWindow.ShowDialog() == true)
             {
-                // Transmet les nouveaux settings au ViewModel
+                // send the new settings back to the ViewModel to apply them
                 ViewModel.ApplySettings(settingsWindow.AppSettings);
 
                 MessageBox.Show("Settings saved successfully.", "Settings",
                     MessageBoxButton.OK, MessageBoxImage.Information);
             }
         }
+
     }
 }

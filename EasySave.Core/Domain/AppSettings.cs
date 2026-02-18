@@ -19,9 +19,13 @@ namespace EasySave.Core.Domain
         public string BusinessSoftwarePath { get; set; } // Software witch will block the backup when it is running
 
         // Constructor
-        public AppSettings(AppLanguage language)
+        // AppSettings.cs
+        public AppSettings()  // ← Constructeur sans paramètres ajouté
         {
-            SetLanguage(language);
+            Language = AppLanguage.Anglais;
+            LogFormat = "json";
+            ExtensionsToEncrypt = new List<string>();
+            BusinessSoftwarePath = "";
         }
 
         // Méthode pour définir la langue (uniquement Anglais ou Français)

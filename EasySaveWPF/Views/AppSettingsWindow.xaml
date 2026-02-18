@@ -7,9 +7,7 @@
         WindowStartupLocation="CenterOwner">
 
     <Window.Resources>
-        <!-- Génère automatiquement la liste des valeurs de l'enum AppLanguage -->
-        <!-- NOTE : on utilise domain:AppLanguage pour éviter le conflit avec
-             System.Windows.Markup.XmlLanguage que WPF injecte via l'attribut Language -->
+        <!--load the enum from AppLanguage -->
         <ObjectDataProvider x:Key="LanguageEnumValues"
                             MethodName="GetValues"
                             ObjectType="{x:Type sys:Enum}">
@@ -34,19 +32,12 @@
         <StackPanel Grid.Row="0" Margin="0,5">
             <TextBlock FontWeight="Bold" FontFamily="Cascadia Mono" FontSize="13"
                        Text="Extensions To Encrypt"/>
-            <CheckBox Content=".txt"/>
-            <CheckBox Content=".csv"/>
-            <CheckBox Content=".png"/>
-            <CheckBox Content=".jpg"/>
-            <!-- Liste dynamique des extensions cochées -->
-            <ItemsControl x:Name="ExtensionsListBox" Margin="0,5">
-                <ItemsControl.ItemTemplate>
-                    <DataTemplate>
-                        <CheckBox Content="{Binding}" IsChecked="True"
-                                  Unchecked="ExtensionCheckBox_Unchecked"/>
-                    </DataTemplate>
-                </ItemsControl.ItemTemplate>
-            </ItemsControl>
+            <CheckBox x:Name="TxtCheckBox" Content=".txt" Margin="0,5"/>
+            <CheckBox x:Name="CsvCheckBox" Content=".csv" Margin="0,2"/>
+            <CheckBox x:Name="PngCheckBox" Content=".png" Margin="0,2"/>
+            <CheckBox x:Name="JpgCheckBox" Content=".jpg" Margin="0,2"/>
+            <CheckBox x:Name="DocxCheckBox" Content=".docx" Margin="0,2"/>
+            <CheckBox x:Name="PdfCheckBox" Content=".pdf" Margin="0,2"/>
         </StackPanel>
 
         <!-- Business Software Path -->
@@ -61,10 +52,7 @@
                      ToolTip="Example: C:\Windows\System32\calc.exe"/>
         </StackPanel>
 
-        <!-- (Row 2 réservé pour extension future) -->
-        <StackPanel Grid.Row="2" Margin="0,5"/>
-
-        <!-- Language — généré depuis l'enum -->
+        <!-- Combo is generated from the enum AppLanguage -->
         <StackPanel Grid.Row="3" Margin="0,5">
             <TextBlock FontWeight="Bold" FontFamily="Cascadia Mono" FontSize="13"
                        Text="Language"/>
@@ -83,7 +71,7 @@
             </ComboBox>
         </StackPanel>
 
-        <!-- Buttons -->
+        <!-- Buttons save and cancel -->
         <StackPanel Grid.Row="6" Orientation="Horizontal"
                     HorizontalAlignment="Right" Margin="0,20,0,0">
             <Button Content="Save" Width="100" Height="35"
