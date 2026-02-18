@@ -12,9 +12,27 @@ namespace EasySave.WPF.ViewModels
     {
         private readonly JobManager _jobManager;
         private readonly BackupOrchestrator _orchestrator;
+        private readonly SettingsManager _settingsManager;
 
         // Observable collection for WPF binding
         public ObservableCollection<BackupJob> Jobs { get; set; }
+
+        // ── Settings ────────────────────────────────────────────────────────────
+        public AppSettings CurrentSettings => _settingsManager.Get();
+
+        public void ApplySettings(AppSettings newSettings)
+        {
+            if (newSettings == null) throw new ArgumentNullException(nameof(newSettings));
+
+            _settingsManager.ApplySettings(newSettings);
+
+            // Propage les settings aux autres services si besoin
+            // _orchestrator.UpdateSettings(newSettings);
+
+            StatusMessage = "Settings updated successfully.";
+            OnPropertyChanged(nameof(CurrentSettings));
+        }
+        // ────────────────────────────────────────────────────────────────────────
 
         // Selected job
         private BackupJob _selectedJob;
@@ -47,10 +65,11 @@ namespace EasySave.WPF.ViewModels
         public ICommand RunJobCommand { get; }
         public ICommand RunAllCommand { get; }
 
-        public MainViewModel(JobManager jobManager, BackupOrchestrator orchestrator)
+        public MainViewModel(JobManager jobManager, BackupOrchestrator orchestrator, SettingsManager settingsManager)
         {
             _jobManager = jobManager ?? throw new ArgumentNullException(nameof(jobManager));
             _orchestrator = orchestrator ?? throw new ArgumentNullException(nameof(orchestrator));
+            _settingsManager = settingsManager ?? throw new ArgumentNullException(nameof(settingsManager));
 
             // Load jobs
             Jobs = new ObservableCollection<BackupJob>(_jobManager.GetAll());
@@ -63,10 +82,7 @@ namespace EasySave.WPF.ViewModels
         }
 
         // Command implementations
-        private void ExecuteCreateJob()
-        {
-            // Will be handled by View (opens CreateJobWindow)
-        }
+        private void ExecuteCreateJob() { }
 
         public void AddJob(BackupJob job)
         {

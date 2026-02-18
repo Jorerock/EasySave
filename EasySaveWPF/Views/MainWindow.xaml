@@ -66,6 +66,10 @@
                                 Command="{Binding DeleteJobCommand}"
                                 Margin="0,5" Padding="10" Height="40"
                                 Background="#F44336" Foreground="White"/>
+
+                        <Button Content="AppSettings" 
+                        Click="AppSettings_Click"
+                        Margin="0,5" Padding="10" Height="40"/>
                     </StackPanel>
                 </GroupBox>
 

@@ -8,11 +8,12 @@
 
   <ItemGroup>
     <Reference Include="CryptoSoft">
-      <HintPath>..\EasySave\external\CryptoSoft.dll</HintPath>
+      <HintPath>external\CryptoSoft.dll</HintPath>
     </Reference>
     <Reference Include="EasyLog">
-      <HintPath>..\EasySave\external\EasyLog.dll</HintPath>
+      <HintPath>external\EasyLog.dll</HintPath>
     </Reference>
   </ItemGroup>
+
 
 </Project>

@@ -17,31 +17,45 @@ namespace EasySave.WPF
         {
             base.OnStartup(e);
 
-            // Same initialization as Program.cs
+
+            // Path Configuration
+
             string baseDir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "ProSoft", "EasySave");
             Directory.CreateDirectory(baseDir);
 
             string configPath = Path.Combine(baseDir, "jobs.json");
+            string settingsPath = Path.Combine(baseDir, "settings.json");  
             string logDir = Path.Combine(baseDir, "logs");
             string statePath = Path.Combine(baseDir, "state.json");
 
-            // Initialize services (exactly like Program.cs)
+   
+            // Building Repositories
+
+            IJobRepository jobRepository = new JsonJobRepository(configPath);
+            ISettingsRepository settingsRepository = new JsonSettingsRepository(settingsPath);
+
+            // Building Log & State Writers
+  
             ILogWriter logWriter = new JsonLogWriter(logDir);
             IStateWriter stateWriter = new JsonStateWriter(statePath);
-            IJobRepository repo = new JsonJobRepository(configPath);
             IBackupEngine engine = new FileSystemBackupEngine(logWriter, stateWriter);
 
-            // Create managers and orchestrator
-            JobManager jobManager = new JobManager(repo);
-            BackupOrchestrator orchestrator = new BackupOrchestrator(repo, engine);
 
-            // Localization (optional for WPF)
-            //ILocalizationService localizationService = new LocalizationService();
+            // managers & orchestrator
 
-            // Create ViewModel
-            MainViewModel viewModel = new MainViewModel(jobManager, orchestrator);
+            JobManager jobManager = new JobManager(jobRepository);
+            SettingsManager settingsManager = new SettingsManager(settingsRepository);
+            BackupOrchestrator orchestrator = new BackupOrchestrator(jobRepository, engine);
 
-            // Create and show Main Window
+    
+            // ViewModel & View
+ 
+            MainViewModel viewModel = new MainViewModel(
+                jobManager, 
+                orchestrator,
+                settingsManager  
+            );
+
             var mainWindow = new MainWindow
             {
                 DataContext = viewModel
