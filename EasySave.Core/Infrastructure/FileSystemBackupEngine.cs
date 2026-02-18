@@ -14,11 +14,13 @@ namespace EasySave.Core.Infrastructure
     {
         private readonly ILogWriter _logWriter;
         private readonly IStateWriter _stateWriter;
+        private readonly AppSettings _settings;
 
-        public FileSystemBackupEngine(ILogWriter logWriter, IStateWriter stateWriter)
+        public FileSystemBackupEngine(ILogWriter logWriter, IStateWriter stateWriter, AppSettings settings)
         {
             _logWriter = logWriter ?? throw new ArgumentNullException(nameof(logWriter));
             _stateWriter = stateWriter ?? throw new ArgumentNullException(nameof(stateWriter));
+            _settings = settings;
         }
 
         public void Run(BackupJob job)
@@ -41,6 +43,8 @@ namespace EasySave.Core.Infrastructure
                 SizeRemainingBytes = 0,
                 ProgressPct = 0
             };
+
+
 
             try
             {
@@ -84,8 +88,6 @@ namespace EasySave.Core.Infrastructure
                     FileSizeBytes = 0,
                     TransferTimeMs = -1
                 });
-
-                // Preserve stack trace
                 throw;
             }
         }
@@ -105,7 +107,7 @@ namespace EasySave.Core.Infrastructure
             CryptoSoftEncryptorAdapter encryptor = null;
             if (job.EnableEncryption && !string.IsNullOrEmpty(job.EncryptionKey))
             {
-                encryptor = new CryptoSoftEncryptorAdapter(job.EncryptionKey, _logWriter);
+                encryptor = new CryptoSoftEncryptorAdapter(job.EncryptionKey, _logWriter, _settings);
             }
 
             // Select ALL files for full backup
@@ -159,7 +161,7 @@ namespace EasySave.Core.Infrastructure
             CryptoSoftEncryptorAdapter encryptor = null;
             if (job.EnableEncryption && !string.IsNullOrEmpty(job.EncryptionKey))
             {
-                encryptor = new CryptoSoftEncryptorAdapter(job.EncryptionKey, _logWriter);
+                encryptor = new CryptoSoftEncryptorAdapter(job.EncryptionKey, _logWriter, _settings);
             }
 
             // Select files (Differential)
@@ -244,7 +246,7 @@ namespace EasySave.Core.Infrastructure
             // Crypt
             int encryptTime = 0;
             if (encryptor != null &&
-                CryptoSoftEncryptorAdapter.ShouldEncrypt(targetPath, job.ExtensionsToEncrypt))
+                encryptor.ShouldEncrypt(targetPath))
             {
                 encryptTime = encryptor.EncryptFile(targetPath, job.Name);
 

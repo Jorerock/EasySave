@@ -1,6 +1,7 @@
 ﻿using EasyLog.Interfaces;
 using EasyLog.Writers;
 using EasySave.Core.Application;
+using EasySave.Core.Domain;
 using EasySave.Core.Infrastructure;
 using EasySave.WPF.ViewModels;
 using EasySave.WPF.Views;
@@ -38,13 +39,15 @@ namespace EasySave.WPF
   
             ILogWriter logWriter = new JsonLogWriter(logDir);
             IStateWriter stateWriter = new JsonStateWriter(statePath);
-            IBackupEngine engine = new FileSystemBackupEngine(logWriter, stateWriter);
 
 
             // managers & orchestrator
 
             JobManager jobManager = new JobManager(jobRepository);
             SettingsManager settingsManager = new SettingsManager(settingsRepository);
+            AppSettings appSettings = settingsManager.Get();
+            IBackupEngine engine = new FileSystemBackupEngine(logWriter, stateWriter, appSettings);
+
             BackupOrchestrator orchestrator = new BackupOrchestrator(jobRepository, engine);
 
     
