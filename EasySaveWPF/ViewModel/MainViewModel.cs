@@ -91,13 +91,15 @@ namespace EasySave.WPF.ViewModels
             StatusMessage = $"Job '{job.Name}' created successfully";
         }
 
+        
         private void ExecuteDeleteJob()
         {
-            if (SelectedJob == null) return;
+            var job = SelectedJob;
+            if (job == null) return;
 
-            _jobManager.Remove(SelectedJob.Id);
-            Jobs.Remove(SelectedJob);
-            StatusMessage = $"Job '{SelectedJob.Name}' deleted";
+            _jobManager.Remove(job.Id);
+            Jobs.Remove(job);
+            StatusMessage = $"Job '{job.Name}' deleted";
             SelectedJob = null;
         }
 
