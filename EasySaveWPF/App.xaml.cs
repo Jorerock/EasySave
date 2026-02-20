@@ -38,7 +38,7 @@ namespace EasySave.WPF
   
             ILogWriter logWriter = new JsonLogWriter(logDir);
             IStateWriter stateWriter = new JsonStateWriter(statePath);
-            IBackupEngine engine = new FileSystemBackupEngine(logWriter, stateWriter);
+            IBackupEngine engine = new FileSystemBackupEngine(logWriter, stateWriter, new ProcessBusinessSoftwareDetector());
 
 
             // managers & orchestrator

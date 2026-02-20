@@ -25,7 +25,12 @@ namespace EasySave
             IStateWriter stateWriter = new JsonStateWriter(statePath);
 
             IJobRepository repo = new JsonJobRepository(configPath);
-            IBackupEngine engine = new FileSystemBackupEngine(logWriter, stateWriter);
+            IBackupEngine engine = new FileSystemBackupEngine(
+                logWriter,
+                stateWriter,
+                new ProcessBusinessSoftwareDetector()
+            );
+            
 
             JobManager jobManager = new JobManager(repo);
             BackupOrchestrator orchestrator = new BackupOrchestrator(repo, engine);
