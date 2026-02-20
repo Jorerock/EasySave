@@ -1,8 +1,8 @@
 ﻿using EasySave.Core.Domain;
-using EasySave.ViewModel;
+//using EasySave.ViewModel;
 using System;
 using System.Collections.Generic;
-
+using EasySave.Core.ViewModels;
 namespace EasySave.View
 {
     public sealed class ConsoleView
@@ -60,6 +60,10 @@ namespace EasySave.View
                             ChangeLanguageFlow();
                             break;
 
+                        case "7":
+                            Menu_CryptList();
+                            break;
+
                         case "0":
                             exit = true;
                             break;
@@ -89,6 +93,8 @@ namespace EasySave.View
             Console.WriteLine("4) " + _i18n.T("Menu_RunSelected"));
             Console.WriteLine("5) " + _i18n.T("Menu_RunAll"));
             Console.WriteLine("6) " + _i18n.T("Menu_ChangeLanguage"));
+            Console.WriteLine("7) " + _i18n.T("Menu_CryptList"));
+
             Console.WriteLine("0) " + _i18n.T("Menu_Exit"));
             Console.Write(_i18n.T("Prompt_Choice") + " ");
         }
@@ -253,6 +259,78 @@ namespace EasySave.View
             _i18n.CurrentLanguage = lang;
 
             Console.WriteLine(_i18n.T("LanguageChanged"));
+        }
+
+
+        private List<string> _extensionsToEncrypt = new List<string>();
+
+        private readonly List<string> _availableExtensions = new List<string>
+        {
+            ".txt", ".csv", ".png", ".jpg", ".docx", ".pdf"
+        };
+        private void Menu_CryptList()
+        {
+            while (true)
+            {
+                Console.Clear();
+                Console.WriteLine("=== Choix des extensions à crypter ===\n");
+
+                // Affichage avec état
+                for (int i = 0; i < _availableExtensions.Count; i++)
+                {
+                    string ext = _availableExtensions[i];
+                    bool isSelected = _extensionsToEncrypt.Contains(ext);
+                    string status = isSelected ? "[X]" : "[ ]";
+                    ConsoleColor color = isSelected ? ConsoleColor.Green : ConsoleColor.Gray;
+
+                    Console.ForegroundColor = color;
+                    Console.WriteLine($"  {i + 1}) {status} {ext}");
+                    Console.ResetColor();
+                }
+
+                Console.WriteLine("\n  0) Valider et quitter");
+                Console.WriteLine("\nEntrez un numéro pour cocher/décocher une extension.");
+                Console.Write("> ");
+
+                string input = Console.ReadLine();
+
+                if (input == "0")
+                    break;
+
+                if (int.TryParse(input, out int choice) && choice >= 1 && choice <= _availableExtensions.Count)
+                {
+                    string selected = _availableExtensions[choice - 1];
+
+                    // Toggle : si déjà dans la liste on retire, sinon on ajoute
+                    if (_extensionsToEncrypt.Contains(selected))
+                        _extensionsToEncrypt.Remove(selected);
+                    else
+                        _extensionsToEncrypt.Add(selected);
+                }
+                else
+                {
+                    Console.ForegroundColor = ConsoleColor.Red;
+                    Console.WriteLine("Entrée invalide.");
+                    Console.ResetColor();
+                    Thread.Sleep(1000);
+                }
+            }
+
+            // Résumé final
+            Console.Clear();
+            if (_extensionsToEncrypt.Count == 0)
+            {
+                Console.WriteLine("Aucune extension sélectionnée.");
+            }
+            else
+            {
+                Console.WriteLine("Extensions qui seront cryptées :");
+                foreach (string ext in _extensionsToEncrypt)
+                    Console.WriteLine($"  - {ext}");
+            }
+
+            Console.WriteLine("\nAppuyez sur une touche pour continuer...");
+            Console.ReadKey();
         }
     }
 }

@@ -1,6 +1,7 @@
 ﻿using CryptoSoft;
 using EasyLog.Entries;
 using EasyLog.Interfaces;
+using EasySave.Core.Domain;
 
 namespace EasySave.Core.Infrastructure
 {
@@ -8,11 +9,13 @@ namespace EasySave.Core.Infrastructure
     {
         private readonly string _key;
         private readonly ILogWriter _logWriter;
+        private readonly AppSettings _settings;
 
-        public CryptoSoftEncryptorAdapter(string key, ILogWriter logWriter)
+        public CryptoSoftEncryptorAdapter(string key, ILogWriter logWriter, AppSettings settings)
         {
             _key = key ?? throw new ArgumentNullException(nameof(key));
             _logWriter = logWriter ?? throw new ArgumentNullException(nameof(logWriter));
+            _settings = settings ?? throw new ArgumentNullException(nameof(settings));
         }
 
         /// Crypt the file and return is time in ms, or -1 if an error occurs
@@ -38,15 +41,19 @@ namespace EasySave.Core.Infrastructure
         /// <summary>
         /// Vérifie si une extension de fichier doit être cryptée
         /// </summary>
-        public static bool ShouldEncrypt(string filePath, List<string> extensionsToEncrypt)
+        public bool ShouldEncrypt(string filePath)
         {
-            // Si la liste est null ou vide, on crypte TOUS les fichiers
-            if (extensionsToEncrypt == null || !extensionsToEncrypt.Any())
+            var extensions = _settings.ExtensionsToEncrypt;
+            
+
+            if (extensions == null || !extensions.Any())
                 return true;
 
             var extension = Path.GetExtension(filePath)?.ToLowerInvariant();
-            return extensionsToEncrypt.Any(ext =>
+
+            return extensions.Any(ext =>
                 ext.Equals(extension, StringComparison.OrdinalIgnoreCase));
         }
+
     }
 }
