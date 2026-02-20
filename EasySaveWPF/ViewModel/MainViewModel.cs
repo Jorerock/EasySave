@@ -5,6 +5,8 @@ using System.Linq;
 using System.Windows.Input;
 using EasySave.Core.Application;
 using EasySave.Core.Domain;
+using EasySave.WPF.Localization;
+
 
 namespace EasySave.WPF.ViewModels
 {
@@ -72,7 +74,8 @@ namespace EasySave.WPF.ViewModels
         {
             _jobManager.Add(job);
             Jobs.Add(job);
-            StatusMessage = $"Job '{job.Name}' created successfully";
+            StatusMessage = LocalizationManager.T("Status_JobCreated", job.Name);
+
         }
 
         private void ExecuteDeleteJob()
@@ -81,7 +84,7 @@ namespace EasySave.WPF.ViewModels
 
             _jobManager.Remove(SelectedJob.Id);
             Jobs.Remove(SelectedJob);
-            StatusMessage = $"Job '{SelectedJob.Name}' deleted";
+            StatusMessage = LocalizationManager.T("Status_JobDeleted", SelectedJob.Name);
             SelectedJob = null;
         }
 
@@ -93,13 +96,13 @@ namespace EasySave.WPF.ViewModels
 
             try
             {
-                StatusMessage = $"Running backup '{SelectedJob.Name}'...";
+                StatusMessage = LocalizationManager.T("Status_RunningBackup", SelectedJob.Name);
                 _orchestrator.RunOne(SelectedJob.Id);
-                StatusMessage = $"Backup '{SelectedJob.Name}' completed";
+                StatusMessage = LocalizationManager.T("Status_BackupCompleted", SelectedJob.Name);
             }
             catch (Exception ex)
             {
-                StatusMessage = $"Error: {ex.Message}";
+                StatusMessage = LocalizationManager.T("Status_Error", ex.Message);
             }
         }
 
@@ -109,13 +112,13 @@ namespace EasySave.WPF.ViewModels
         {
             try
             {
-                StatusMessage = "Running all backups...";
+                StatusMessage = LocalizationManager.T("Status_RunningAll");
                 _orchestrator.RunAllSequential();
-                StatusMessage = $"All {Jobs.Count} backups completed";
+                StatusMessage = LocalizationManager.T("Status_AllCompleted", Jobs.Count);
             }
             catch (Exception ex)
             {
-                StatusMessage = $"Error: {ex.Message}";
+                StatusMessage = LocalizationManager.T("Status_Error", ex.Message);
             }
         }
 

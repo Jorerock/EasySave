@@ -1,4 +1,5 @@
 ﻿using EasySave.Core.Domain;
+using EasySave.WPF.Localization;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -27,31 +28,30 @@ namespace EasySave.WPF.Views
 
         private void Create_Click(object sender, RoutedEventArgs e)
         {
-            // Validation du nom
             if (string.IsNullOrWhiteSpace(JobNameTextBox.Text))
             {
-                MessageBox.Show("Please enter a job name.", "Validation Error",
+                MessageBox.Show(LocalizationManager.T("Msg_EnterJobName"),
+                    LocalizationManager.T("Msg_ValidationErrorTitle"),
                     MessageBoxButton.OK, MessageBoxImage.Warning);
                 JobNameTextBox.Focus();
                 return;
             }
 
-            // Validation de la source
             string sourcePath = SourceTextBox.Text.Trim();
             if (string.IsNullOrWhiteSpace(sourcePath))
             {
-                MessageBox.Show("Please enter a source directory.", "Validation Error",
+                MessageBox.Show(LocalizationManager.T("Msg_EnterSourceDir"),
+                    LocalizationManager.T("Msg_ValidationErrorTitle"),
                     MessageBoxButton.OK, MessageBoxImage.Warning);
                 SourceTextBox.Focus();
                 return;
             }
 
-            // Vérifier que le répertoire source existe
             if (!Directory.Exists(sourcePath))
             {
                 var result = MessageBox.Show(
-                    $"The source directory does not exist:\n{sourcePath}\n\nDo you want to create it?",
-                    "Directory Not Found",
+                    $"{LocalizationManager.T("Msg_SourceNotExist")}\n{sourcePath}\n\n{LocalizationManager.T("Msg_CreateDirQuestion")}",
+                    LocalizationManager.T("Msg_DirNotFoundTitle"),
                     MessageBoxButton.YesNo,
                     MessageBoxImage.Question);
 
@@ -63,7 +63,8 @@ namespace EasySave.WPF.Views
                     }
                     catch (Exception ex)
                     {
-                        MessageBox.Show($"Failed to create directory:\n{ex.Message}", "Error",
+                        MessageBox.Show($"{LocalizationManager.T("Msg_FailedCreateDir")}\n{ex.Message}",
+                            LocalizationManager.T("Msg_ErrorTitle"),
                             MessageBoxButton.OK, MessageBoxImage.Error);
                         return;
                     }
@@ -75,31 +76,31 @@ namespace EasySave.WPF.Views
                 }
             }
 
-            // Validation de la cible
             string targetPath = TargetTextBox.Text.Trim();
             if (string.IsNullOrWhiteSpace(targetPath))
             {
-                MessageBox.Show("Please enter a target directory.", "Validation Error",
+                MessageBox.Show(LocalizationManager.T("Msg_EnterTargetDir"),
+                    LocalizationManager.T("Msg_ValidationErrorTitle"),
                     MessageBoxButton.OK, MessageBoxImage.Warning);
                 TargetTextBox.Focus();
                 return;
             }
 
-            // Vérifier que source et cible ne sont pas identiques
             if (sourcePath.Equals(targetPath, StringComparison.OrdinalIgnoreCase))
             {
-                MessageBox.Show("Source and target directories cannot be the same.", "Validation Error",
+                MessageBox.Show(LocalizationManager.T("Msg_SourceTargetSame"),
+                    LocalizationManager.T("Msg_ValidationErrorTitle"),
                     MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;
             }
 
-            // Parse extensions
             List<string> extensions = new List<string>();
             if (EnableEncryptionCheckBox.IsChecked == true)
             {
                 if (string.IsNullOrWhiteSpace(EncryptionKeyTextBox.Text))
                 {
-                    MessageBox.Show("Please enter an encryption key.", "Validation Error",
+                    MessageBox.Show(LocalizationManager.T("Msg_EnterEncryptionKey"),
+                        LocalizationManager.T("Msg_ValidationErrorTitle"),
                         MessageBoxButton.OK, MessageBoxImage.Warning);
                     EncryptionKeyTextBox.Focus();
                     return;
@@ -117,13 +118,12 @@ namespace EasySave.WPF.Views
                 }
             }
 
-            // Create job
             CreatedJob = new BackupJob
             {
                 Name = JobNameTextBox.Text.Trim(),
                 SourceDirectory = sourcePath,
                 TargetDirectory = targetPath,
-                Type = ((ComboBoxItem)BackupTypeComboBox.SelectedItem).Content.ToString() == "Differential"
+                Type = ((ComboBoxItem)BackupTypeComboBox.SelectedItem).Content.ToString() == LocalizationManager.T("BackupType_Differential")
                     ? BackupType.Differential
                     : BackupType.Full,
                 EnableEncryption = EnableEncryptionCheckBox.IsChecked == true,

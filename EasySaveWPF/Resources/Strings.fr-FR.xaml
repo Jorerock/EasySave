@@ -1,0 +1,83 @@
+﻿<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <!-- Général -->
+    <sys:String x:Key="App_Title" xmlns:sys="clr-namespace:System;assembly=System.Runtime">EasySave</sys:String>
+    <sys:String x:Key="Header_Title" xmlns:sys="clr-namespace:System;assembly=System.Runtime">EasySave - Gestionnaire de sauvegardes</sys:String>
+
+    <!-- Langue -->
+    <sys:String x:Key="Language_Label" xmlns:sys="clr-namespace:System;assembly=System.Runtime">Langue :</sys:String>
+    <sys:String x:Key="Language_French" xmlns:sys="clr-namespace:System;assembly=System.Runtime">Français</sys:String>
+    <sys:String x:Key="Language_English" xmlns:sys="clr-namespace:System;assembly=System.Runtime">English</sys:String>
+
+    <!-- Liste jobs -->
+    <sys:String x:Key="Group_Jobs" xmlns:sys="clr-namespace:System;assembly=System.Runtime">Sauvegardes</sys:String>
+    <sys:String x:Key="Col_Name" xmlns:sys="clr-namespace:System;assembly=System.Runtime">Nom</sys:String>
+    <sys:String x:Key="Col_Type" xmlns:sys="clr-namespace:System;assembly=System.Runtime">Type</sys:String>
+    <sys:String x:Key="Col_Source" xmlns:sys="clr-namespace:System;assembly=System.Runtime">Source</sys:String>
+    <sys:String x:Key="Col_Target" xmlns:sys="clr-namespace:System;assembly=System.Runtime">Cible</sys:String>
+    <sys:String x:Key="Col_Encrypted" xmlns:sys="clr-namespace:System;assembly=System.Runtime">Chiffré</sys:String>
+
+    <!-- Actions -->
+    <sys:String x:Key="Group_Actions" xmlns:sys="clr-namespace:System;assembly=System.Runtime">Actions</sys:String>
+    <sys:String x:Key="Btn_CreateNewJob" xmlns:sys="clr-namespace:System;assembly=System.Runtime">Créer une sauvegarde</sys:String>
+    <sys:String x:Key="Btn_RunSelected" xmlns:sys="clr-namespace:System;assembly=System.Runtime">Lancer la sélection</sys:String>
+    <sys:String x:Key="Btn_RunAll" xmlns:sys="clr-namespace:System;assembly=System.Runtime">Tout lancer</sys:String>
+    <sys:String x:Key="Btn_Delete" xmlns:sys="clr-namespace:System;assembly=System.Runtime">Supprimer</sys:String>
+
+    <!-- Détails -->
+    <sys:String x:Key="Group_Details" xmlns:sys="clr-namespace:System;assembly=System.Runtime">Détails de la sauvegarde</sys:String>
+    <sys:String x:Key="Label_Name" xmlns:sys="clr-namespace:System;assembly=System.Runtime">Nom :</sys:String>
+    <sys:String x:Key="Label_Type" xmlns:sys="clr-namespace:System;assembly=System.Runtime">Type :</sys:String>
+    <sys:String x:Key="Label_Source" xmlns:sys="clr-namespace:System;assembly=System.Runtime">Source :</sys:String>
+    <sys:String x:Key="Label_Target" xmlns:sys="clr-namespace:System;assembly=System.Runtime">Cible :</sys:String>
+    <sys:String x:Key="Label_Encryption" xmlns:sys="clr-namespace:System;assembly=System.Runtime">Chiffrement :</sys:String>
+
+    <!-- Create window -->
+    <sys:String x:Key="CreateWindow_Title" xmlns:sys="clr-namespace:System;assembly=System.Runtime">Créer une sauvegarde</sys:String>
+    <sys:String x:Key="CreateJob_JobName" xmlns:sys="clr-namespace:System;assembly=System.Runtime">Nom :</sys:String>
+    <sys:String x:Key="CreateJob_SourceDir" xmlns:sys="clr-namespace:System;assembly=System.Runtime">Dossier source :</sys:String>
+    <sys:String x:Key="CreateJob_TargetDir" xmlns:sys="clr-namespace:System;assembly=System.Runtime">Dossier cible :</sys:String>
+    <sys:String x:Key="CreateJob_PathHint" xmlns:sys="clr-namespace:System;assembly=System.Runtime">(Copie-colle le chemin ou tape-le)</sys:String>
+    <sys:String x:Key="CreateJob_SourceTooltip" xmlns:sys="clr-namespace:System;assembly=System.Runtime">Exemple : C:\Users\VotreNom\Documents</sys:String>
+    <sys:String x:Key="CreateJob_TargetTooltip" xmlns:sys="clr-namespace:System;assembly=System.Runtime">Exemple : D:\Backups\MaSauvegarde</sys:String>
+
+    <sys:String x:Key="CreateJob_BackupType" xmlns:sys="clr-namespace:System;assembly=System.Runtime">Type de sauvegarde :</sys:String>
+    <sys:String x:Key="BackupType_Full" xmlns:sys="clr-namespace:System;assembly=System.Runtime">Complète</sys:String>
+    <sys:String x:Key="BackupType_Differential" xmlns:sys="clr-namespace:System;assembly=System.Runtime">Différentielle</sys:String>
+
+    <sys:String x:Key="CreateJob_EncryptionOptions" xmlns:sys="clr-namespace:System;assembly=System.Runtime">Options de chiffrement</sys:String>
+    <sys:String x:Key="CreateJob_EnableEncryption" xmlns:sys="clr-namespace:System;assembly=System.Runtime">Activer le chiffrement</sys:String>
+    <sys:String x:Key="CreateJob_EncryptionKey" xmlns:sys="clr-namespace:System;assembly=System.Runtime">Clé :</sys:String>
+    <sys:String x:Key="CreateJob_ExtensionsEncrypt" xmlns:sys="clr-namespace:System;assembly=System.Runtime">Extensions à chiffrer :</sys:String>
+    <sys:String x:Key="CreateJob_ExtensionsHint" xmlns:sys="clr-namespace:System;assembly=System.Runtime">(ex : .docx .pdf .txt - vide = tout)</sys:String>
+
+    <sys:String x:Key="Btn_Create" xmlns:sys="clr-namespace:System;assembly=System.Runtime">Créer</sys:String>
+    <sys:String x:Key="Btn_Cancel" xmlns:sys="clr-namespace:System;assembly=System.Runtime">Annuler</sys:String>
+
+    <!-- Messages / titres -->
+    <sys:String x:Key="Msg_SuccessTitle" xmlns:sys="clr-namespace:System;assembly=System.Runtime">Succès</sys:String>
+    <sys:String x:Key="Msg_ValidationErrorTitle" xmlns:sys="clr-namespace:System;assembly=System.Runtime">Erreur de validation</sys:String>
+    <sys:String x:Key="Msg_ErrorTitle" xmlns:sys="clr-namespace:System;assembly=System.Runtime">Erreur</sys:String>
+    <sys:String x:Key="Msg_DirNotFoundTitle" xmlns:sys="clr-namespace:System;assembly=System.Runtime">Dossier introuvable</sys:String>
+
+    <sys:String x:Key="Msg_EnterJobName" xmlns:sys="clr-namespace:System;assembly=System.Runtime">Veuillez saisir un nom de sauvegarde.</sys:String>
+    <sys:String x:Key="Msg_EnterSourceDir" xmlns:sys="clr-namespace:System;assembly=System.Runtime">Veuillez saisir un dossier source.</sys:String>
+    <sys:String x:Key="Msg_EnterTargetDir" xmlns:sys="clr-namespace:System;assembly=System.Runtime">Veuillez saisir un dossier cible.</sys:String>
+    <sys:String x:Key="Msg_SourceTargetSame" xmlns:sys="clr-namespace:System;assembly=System.Runtime">Le dossier source et le dossier cible ne peuvent pas être identiques.</sys:String>
+    <sys:String x:Key="Msg_EnterEncryptionKey" xmlns:sys="clr-namespace:System;assembly=System.Runtime">Veuillez saisir une clé de chiffrement.</sys:String>
+
+    <sys:String x:Key="Msg_SourceNotExist" xmlns:sys="clr-namespace:System;assembly=System.Runtime">Le dossier source n'existe pas :</sys:String>
+    <sys:String x:Key="Msg_CreateDirQuestion" xmlns:sys="clr-namespace:System;assembly=System.Runtime">Voulez-vous le créer ?</sys:String>
+    <sys:String x:Key="Msg_FailedCreateDir" xmlns:sys="clr-namespace:System;assembly=System.Runtime">Impossible de créer le dossier :</sys:String>
+
+    <!-- Status (format {0} etc.) -->
+    <sys:String x:Key="Status_JobCreated" xmlns:sys="clr-namespace:System;assembly=System.Runtime">Sauvegarde '{0}' créée avec succès</sys:String>
+    <sys:String x:Key="Status_JobDeleted" xmlns:sys="clr-namespace:System;assembly=System.Runtime">Sauvegarde '{0}' supprimée</sys:String>
+    <sys:String x:Key="Status_RunningBackup" xmlns:sys="clr-namespace:System;assembly=System.Runtime">Exécution de '{0}'...</sys:String>
+    <sys:String x:Key="Status_BackupCompleted" xmlns:sys="clr-namespace:System;assembly=System.Runtime">Sauvegarde '{0}' terminée</sys:String>
+    <sys:String x:Key="Status_RunningAll" xmlns:sys="clr-namespace:System;assembly=System.Runtime">Exécution de toutes les sauvegardes...</sys:String>
+    <sys:String x:Key="Status_AllCompleted" xmlns:sys="clr-namespace:System;assembly=System.Runtime">Les {0} sauvegardes sont terminées</sys:String>
+    <sys:String x:Key="Status_Error" xmlns:sys="clr-namespace:System;assembly=System.Runtime">Erreur : {0}</sys:String>
+
+</ResourceDictionary>
