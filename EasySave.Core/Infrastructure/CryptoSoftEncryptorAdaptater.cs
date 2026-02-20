@@ -44,6 +44,7 @@ namespace EasySave.Core.Infrastructure
         public bool ShouldEncrypt(string filePath)
         {
             var extensions = _settings.ExtensionsToEncrypt;
+            
 
             if (extensions == null || !extensions.Any())
                 return true;

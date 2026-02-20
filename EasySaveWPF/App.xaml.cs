@@ -4,6 +4,7 @@ using EasySave.Core.Application;
 using EasySave.Core.Domain;
 using EasySave.Core.Infrastructure;
 using EasySave.WPF.ViewModels;
+using EasySave.Core.ViewModels;
 using EasySave.WPF.Views;
 
 using System;

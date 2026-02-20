@@ -23,6 +23,7 @@ namespace EasySave.Core.Infrastructure
             _settings = settings;
         }
 
+
         public void Run(BackupJob job)
         {
             if (job == null)

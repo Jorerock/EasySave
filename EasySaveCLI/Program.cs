@@ -1,12 +1,13 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using EasyLog.Interfaces;
+﻿using EasyLog.Interfaces;
 using EasyLog.Writers;
 using EasySave.Core.Application;
+using EasySave.Core.Domain;
 using EasySave.Core.Infrastructure;
 using EasySave.View;
 using EasySave.ViewModel;
+using System;
+using System.Collections.Generic;
+using System.IO;
 
 namespace EasySave
 {
@@ -20,12 +21,17 @@ namespace EasySave
             string configPath = Path.Combine(baseDir, "jobs.json");
             string logDir = Path.Combine(baseDir, "logs");
             string statePath = Path.Combine(baseDir, "state.json");
+            string settingsPath = Path.Combine(baseDir, "settings.json");
 
             ILogWriter logWriter = new JsonLogWriter(logDir);
             IStateWriter stateWriter = new JsonStateWriter(statePath);
 
             IJobRepository repo = new JsonJobRepository(configPath);
-            IBackupEngine engine = new FileSystemBackupEngine(logWriter, stateWriter);
+            ISettingsRepository settingsRepository = new JsonSettingsRepository(settingsPath);
+
+            SettingsManager settingsManager = new SettingsManager(settingsRepository);
+            AppSettings appSettings = settingsManager.Get();
+            IBackupEngine engine = new FileSystemBackupEngine(logWriter, stateWriter, appSettings);
 
             JobManager jobManager = new JobManager(repo);
             BackupOrchestrator orchestrator = new BackupOrchestrator(repo, engine);
