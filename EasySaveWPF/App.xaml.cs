@@ -47,7 +47,11 @@ namespace EasySave.WPF
             JobManager jobManager = new JobManager(jobRepository);
             SettingsManager settingsManager = new SettingsManager(settingsRepository);
             AppSettings appSettings = settingsManager.Get();
-            IBackupEngine engine = new FileSystemBackupEngine(logWriter, stateWriter, appSettings);
+
+            // Instantiate detector required by FileSystemBackupEngine
+            IBusinessSoftwareDetector detector = new ProcessBusinessSoftwareDetector();
+
+            IBackupEngine engine = new FileSystemBackupEngine(logWriter, stateWriter, appSettings, detector);
 
             BackupOrchestrator orchestrator = new BackupOrchestrator(jobRepository, engine);
 

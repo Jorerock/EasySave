@@ -31,7 +31,9 @@ namespace EasySave
 
             SettingsManager settingsManager = new SettingsManager(settingsRepository);
             AppSettings appSettings = settingsManager.Get();
-            IBackupEngine engine = new FileSystemBackupEngine(logWriter, stateWriter, appSettings);
+            // Instantiate detector required by FileSystemBackupEngine
+            IBusinessSoftwareDetector detector = new ProcessBusinessSoftwareDetector();
+            IBackupEngine engine = new FileSystemBackupEngine(logWriter, stateWriter, appSettings, detector);
 
             JobManager jobManager = new JobManager(repo);
             BackupOrchestrator orchestrator = new BackupOrchestrator(repo, engine);
