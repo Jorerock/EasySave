@@ -4,7 +4,7 @@
         Title="EasySave" Height="600" Width="900"
         WindowStartupLocation="CenterScreen">
 
-    <Grid>
+    <Grid Margin="0,0,0,-44">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
@@ -75,7 +75,7 @@
 
                 <!-- Job Details -->
                 <GroupBox Header="Selected Job Details" Margin="0,20,0,0">
-                    <StackPanel DataContext="{Binding SelectedJob}">
+                    <StackPanel DataContext="{Binding SelectedJob}" Height="166">
                         <TextBlock Text="{Binding Name, StringFormat='Name: {0}'}" 
                                    Margin="5"/>
                         <TextBlock Text="{Binding Type, StringFormat='Type: {0}'}" 

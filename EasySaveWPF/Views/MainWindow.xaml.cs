@@ -1,12 +1,13 @@
 ﻿using EasySave.Core.Domain;
-using EasySave.WPF.ViewModels;
+using EasySave.WPF.ViewModels; 
 using System.Windows;
 
-namespace EasySave.WPF.Views  // ← Doit correspondre au x:Class dans XAML
+namespace EasySave.WPF.Views
 {
     public partial class MainWindow : Window
     {
-        private MainViewModel ViewModel => (MainViewModel)DataContext;
+        // ✅ CORRECTION : Cast vers WpfMainViewModel au lieu de IMainViewModel
+        private WpfMainViewModel ViewModel => (WpfMainViewModel)DataContext;
 
         public MainWindow()
         {
@@ -15,7 +16,7 @@ namespace EasySave.WPF.Views  // ← Doit correspondre au x:Class dans XAML
 
         private void CreateJob_Click(object sender, RoutedEventArgs e)
         {
-            var createWindow = new Views.CreateJobWindow
+            var createWindow = new CreateJobWindow
             {
                 Owner = this
             };
@@ -23,8 +24,8 @@ namespace EasySave.WPF.Views  // ← Doit correspondre au x:Class dans XAML
             if (createWindow.ShowDialog() == true)
             {
                 var job = createWindow.CreatedJob;
-                ViewModel.AddJob(job);
-
+                ViewModel.AddJob(job);  // ✅ Fonctionne car WpfMainViewModel a AddJob
+                
                 if (!string.IsNullOrEmpty(ViewModel.StatusMessage))
                 {
                     MessageBox.Show(ViewModel.StatusMessage, "Success",
@@ -33,13 +34,9 @@ namespace EasySave.WPF.Views  // ← Doit correspondre au x:Class dans XAML
             }
         }
 
-
-
         private void AppSettings_Click(object sender, RoutedEventArgs e)
         {
-            // get the settings from the ViewModel to pass to the settings window
-            var currentSettings = ViewModel.CurrentSettings
-                ?? new AppSettings();
+            var currentSettings = ViewModel.GetCurrentSettings();
 
             var settingsWindow = new AppSettingsWindow(currentSettings)
             {
@@ -48,13 +45,11 @@ namespace EasySave.WPF.Views  // ← Doit correspondre au x:Class dans XAML
 
             if (settingsWindow.ShowDialog() == true)
             {
-                // send the new settings back to the ViewModel to apply them
                 ViewModel.ApplySettings(settingsWindow.AppSettings);
 
                 MessageBox.Show("Settings saved successfully.", "Settings",
                     MessageBoxButton.OK, MessageBoxImage.Information);
             }
         }
-
     }
 }

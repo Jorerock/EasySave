@@ -12,14 +12,15 @@ namespace EasySave.Core.Infrastructure
     {
         private readonly ILogWriter _logWriter;
         private readonly IStateWriter _stateWriter;
-        private readonly IBusinessSoftwareDetector _detector;
+        private readonly AppSettings _settings;
 
-        public FileSystemBackupEngine(ILogWriter logWriter, IStateWriter stateWriter, IBusinessSoftwareDetector detector)
+        public FileSystemBackupEngine(ILogWriter logWriter, IStateWriter stateWriter, AppSettings settings)
         {
             _logWriter = logWriter ?? throw new ArgumentNullException(nameof(logWriter));
             _stateWriter = stateWriter ?? throw new ArgumentNullException(nameof(stateWriter));
-            _detector = detector ?? throw new ArgumentNullException(nameof(detector));
+            _settings = settings;
         }
+
 
         public void Run(BackupJob job)
         {
@@ -50,6 +51,24 @@ namespace EasySave.Core.Infrastructure
             // sinon, continuer la sauvegarde normale
             if (job == null)
                 throw new ArgumentNullException(nameof(job));
+
+            // State must be written in (near) real-time to a SINGLE state.json file.
+            // Logs must be written to a daily JSON file.
+            var state = new StateEntry
+            {
+                Timestamp = DateTime.UtcNow,
+                BackupName = job.Name,
+                CurrentSourceUNC = job.SourceDirectory,
+                CurrentTargetUNC = job.TargetDirectory,
+                State = JobRunState.Active,
+                TotalFiles = 0,
+                TotalSizeBytes = 0,
+                FilesRemaining = 0,
+                SizeRemainingBytes = 0,
+                ProgressPct = 0
+            };
+
+
 
             try
             {
@@ -108,7 +127,6 @@ namespace EasySave.Core.Infrastructure
                     FileSizeBytes = 0,
                     TransferTimeMs = 0
                 });
-
                 throw;
             }
         }
@@ -197,7 +215,7 @@ namespace EasySave.Core.Infrastructure
             CryptoSoftEncryptorAdapter encryptor = null;
             if (job.EnableEncryption && !string.IsNullOrEmpty(job.EncryptionKey))
             {
-                encryptor = new CryptoSoftEncryptorAdapter(job.EncryptionKey, _logWriter);
+                encryptor = new CryptoSoftEncryptorAdapter(job.EncryptionKey, _logWriter, _settings);
             }
 
             // Select ALL files for full backup
@@ -251,7 +269,7 @@ namespace EasySave.Core.Infrastructure
             CryptoSoftEncryptorAdapter encryptor = null;
             if (job.EnableEncryption && !string.IsNullOrEmpty(job.EncryptionKey))
             {
-                encryptor = new CryptoSoftEncryptorAdapter(job.EncryptionKey, _logWriter);
+                encryptor = new CryptoSoftEncryptorAdapter(job.EncryptionKey, _logWriter, _settings);
             }
 
             // Select files (Differential)
@@ -336,7 +354,7 @@ namespace EasySave.Core.Infrastructure
             // Crypt
             int encryptTime = 0;
             if (encryptor != null &&
-                CryptoSoftEncryptorAdapter.ShouldEncrypt(targetPath, job.ExtensionsToEncrypt))
+                encryptor.ShouldEncrypt(targetPath))
             {
                 encryptTime = encryptor.EncryptFile(targetPath, job.Name);
 
