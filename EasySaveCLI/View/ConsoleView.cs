@@ -1,8 +1,10 @@
 ﻿using EasySave.Core.Domain;
-//using EasySave.ViewModel;
+using EasySave.Core.ViewModels;
 using System;
 using System.Collections.Generic;
-using EasySave.Core.ViewModels;
+using System.Linq;
+using System.Threading;
+
 namespace EasySave.View
 {
     public sealed class ConsoleView
@@ -23,7 +25,7 @@ namespace EasySave.View
             while (!exit)
             {
                 ShowMenu();
-                string? input = Console.ReadLine();
+                string input = Console.ReadLine();
 
                 if (string.IsNullOrWhiteSpace(input))
                 {
@@ -57,7 +59,7 @@ namespace EasySave.View
                             break;
 
                         case "6":
-                            ChangeLanguageFlow();
+                            ChangeLanguageFlow(); // ✅ persiste dans settings.json
                             break;
 
                         case "7":
@@ -94,7 +96,6 @@ namespace EasySave.View
             Console.WriteLine("5) " + _i18n.T("Menu_RunAll"));
             Console.WriteLine("6) " + _i18n.T("Menu_ChangeLanguage"));
             Console.WriteLine("7) " + _i18n.T("Menu_CryptList"));
-
             Console.WriteLine("0) " + _i18n.T("Menu_Exit"));
             Console.Write(_i18n.T("Prompt_Choice") + " ");
         }
@@ -113,9 +114,7 @@ namespace EasySave.View
             for (int i = 0; i < jobs.Count; i++)
             {
                 BackupJob job = jobs[i];
-                Console.WriteLine(
-                    $"[{job.Id}] {job.Name} | {job.Type} | {job.SourceDirectory} -> {job.TargetDirectory}"
-                );
+                Console.WriteLine($"[{job.Id}] {job.Name} | {job.Type} | {job.SourceDirectory} -> {job.TargetDirectory}");
             }
         }
 
@@ -138,7 +137,6 @@ namespace EasySave.View
 
             BackupType type = typeInput.Trim() == "2" ? BackupType.Differential : BackupType.Full;
 
-            // Options de cryptage
             Console.WriteLine("\n" + _i18n.T("EncryptionOptions") + ":");
             Console.Write(_i18n.T("Prompt_EnableEncryption") + " (O/N): ");
             string encryptChoice = Console.ReadLine()?.Trim().ToUpper() ?? "N";
@@ -149,27 +147,24 @@ namespace EasySave.View
 
             if (enableEncryption)
             {
-                // Demander la clé de cryptage
                 Console.Write(_i18n.T("Prompt_EncryptionKey") + " ");
                 encryptionKey = Console.ReadLine()?.Trim();
 
                 if (string.IsNullOrEmpty(encryptionKey))
                 {
                     Console.WriteLine(_i18n.T("Warning_NoKey"));
-                    encryptionKey = "DefaultKey_EasySave_2024"; // Clé par défaut
+                    encryptionKey = "DefaultKey_EasySave_2024";
                     Console.WriteLine(_i18n.T("Info_UsingDefaultKey"));
                 }
 
-                // Demander les extensions à crypter
                 Console.WriteLine("\n" + _i18n.T("Prompt_ExtensionsToEncrypt"));
-                Console.WriteLine(_i18n.T("Info_ExtensionsExample")); // Ex: .docx .pdf .txt .xlsx
-                Console.WriteLine(_i18n.T("Info_ExtensionsEmpty")); // (Entrée vide = tous les fichiers)
+                Console.WriteLine(_i18n.T("Info_ExtensionsExample"));
+                Console.WriteLine(_i18n.T("Info_ExtensionsEmpty"));
                 Console.Write("> ");
                 string extensionsInput = Console.ReadLine()?.Trim();
 
                 if (!string.IsNullOrEmpty(extensionsInput))
                 {
-                    // Parser les extensions
                     extensionsToEncrypt = extensionsInput
                         .Split(new[] { ' ', ',', ';' }, StringSplitOptions.RemoveEmptyEntries)
                         .Select(ext => ext.StartsWith(".") ? ext : "." + ext)
@@ -185,20 +180,23 @@ namespace EasySave.View
                 }
             }
 
-
             _vm.CreateJob(name, src, dst, type, enableEncryption, encryptionKey, extensionsToEncrypt);
 
-            // Resume
             Console.WriteLine("\n=== " + _i18n.T("JobSummary") + " ===");
-            Console.WriteLine($"{_i18n.T("Name")}: {name}");
-            Console.WriteLine($"{_i18n.T("Source")}: {src}");
-            Console.WriteLine($"{_i18n.T("Target")}: {dst}");
-            Console.WriteLine($"{_i18n.T("Type")}: {type}");
-            Console.WriteLine($"{_i18n.T("Encryption")}: {(enableEncryption ? _i18n.T("Yes") : _i18n.T("No"))}");
+            Console.WriteLine(_i18n.T("Name") + ": " + name);
+            Console.WriteLine(_i18n.T("Source") + ": " + src);
+            Console.WriteLine(_i18n.T("Target") + ": " + dst);
+            Console.WriteLine(_i18n.T("Type") + ": " + type);
+            Console.WriteLine(_i18n.T("Encryption") + ": " + (enableEncryption ? _i18n.T("Yes") : _i18n.T("No")));
+
             if (enableEncryption)
             {
-                Console.WriteLine($"{_i18n.T("Extensions")}: {(extensionsToEncrypt.Any() ? string.Join(", ", extensionsToEncrypt) : _i18n.T("All"))}");
+                string extText = extensionsToEncrypt.Any()
+                    ? string.Join(", ", extensionsToEncrypt)
+                    : _i18n.T("All");
+                Console.WriteLine(_i18n.T("Extensions") + ": " + extText);
             }
+
             Console.WriteLine(_i18n.T("JobCreated"));
         }
 
@@ -220,7 +218,7 @@ namespace EasySave.View
         private void RunSelectedJobsFlow()
         {
             Console.WriteLine(_i18n.T("Prompt_RunSelected"));
-            Console.WriteLine(_i18n.T("Hint_RunSelected")); // ex: "1-3" ou "1;3"
+            Console.WriteLine(_i18n.T("Hint_RunSelected"));
             Console.Write("> ");
             string selection = Console.ReadLine() ?? string.Empty;
 
@@ -233,7 +231,6 @@ namespace EasySave.View
                 return;
             }
 
-            // Fix: RunJob expects a single int. Iterate over parsed ids and call RunJob for each id.
             foreach (int id in ids)
             {
                 _vm.RunJob(id);
@@ -248,6 +245,7 @@ namespace EasySave.View
             Console.WriteLine(_i18n.T("RunDone"));
         }
 
+        // ✅ IMPORTANT : change langue + sauvegarde dans settings.json
         private void ChangeLanguageFlow()
         {
             Console.WriteLine("1) FR");
@@ -255,12 +253,18 @@ namespace EasySave.View
             Console.Write("> ");
             string input = Console.ReadLine() ?? "1";
 
-            string lang = input.Trim() == "2" ? "en" : "fr";
-            _i18n.CurrentLanguage = lang;
+            bool english = input.Trim() == "2";
+
+            // 1) change i18n immédiat
+            _i18n.CurrentLanguage = english ? "en" : "fr";
+
+            // 2) persist via settings
+            AppSettings settings = _vm.GetCurrentSettings();
+            settings.SetLanguage(english ? AppLanguage.Anglais : AppLanguage.Francais);
+            _vm.ApplySettings(settings);
 
             Console.WriteLine(_i18n.T("LanguageChanged"));
         }
-
 
         private List<string> _extensionsToEncrypt = new List<string>();
 
@@ -268,6 +272,7 @@ namespace EasySave.View
         {
             ".txt", ".csv", ".png", ".jpg", ".docx", ".pdf"
         };
+
         private void Menu_CryptList()
         {
             while (true)
@@ -275,7 +280,6 @@ namespace EasySave.View
                 Console.Clear();
                 Console.WriteLine("=== Choix des extensions à crypter ===\n");
 
-                // Affichage avec état
                 for (int i = 0; i < _availableExtensions.Count; i++)
                 {
                     string ext = _availableExtensions[i];
@@ -284,7 +288,7 @@ namespace EasySave.View
                     ConsoleColor color = isSelected ? ConsoleColor.Green : ConsoleColor.Gray;
 
                     Console.ForegroundColor = color;
-                    Console.WriteLine($"  {i + 1}) {status} {ext}");
+                    Console.WriteLine("  " + (i + 1) + ") " + status + " " + ext);
                     Console.ResetColor();
                 }
 
@@ -301,7 +305,6 @@ namespace EasySave.View
                 {
                     string selected = _availableExtensions[choice - 1];
 
-                    // Toggle : si déjà dans la liste on retire, sinon on ajoute
                     if (_extensionsToEncrypt.Contains(selected))
                         _extensionsToEncrypt.Remove(selected);
                     else
@@ -316,7 +319,6 @@ namespace EasySave.View
                 }
             }
 
-            // Résumé final
             Console.Clear();
             if (_extensionsToEncrypt.Count == 0)
             {
@@ -326,7 +328,7 @@ namespace EasySave.View
             {
                 Console.WriteLine("Extensions qui seront cryptées :");
                 foreach (string ext in _extensionsToEncrypt)
-                    Console.WriteLine($"  - {ext}");
+                    Console.WriteLine("  - " + ext);
             }
 
             Console.WriteLine("\nAppuyez sur une touche pour continuer...");

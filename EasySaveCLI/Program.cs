@@ -31,6 +31,7 @@ namespace EasySave
 
             SettingsManager settingsManager = new SettingsManager(settingsRepository);
             AppSettings appSettings = settingsManager.Get();
+
             IBackupEngine engine = new FileSystemBackupEngine(logWriter, stateWriter, appSettings);
 
             JobManager jobManager = new JobManager(repo);
@@ -45,7 +46,6 @@ namespace EasySave
 
                 if (ids.Count > 0)
                 {
-                    // Correction : itérer et appeler RunJob pour chaque id (RunJob attend un int)
                     foreach (int id in ids)
                     {
                         viewModel.RunJob(id);
@@ -54,7 +54,17 @@ namespace EasySave
                 return;
             }
 
+            // ✅ LOCALISATION : appliquer la langue depuis settings.json
             ILocalizationService localizationService = new LocalizationService();
+            if (appSettings.Language == AppLanguage.Anglais)
+            {
+                localizationService.CurrentLanguage = "en";
+            }
+            else
+            {
+                localizationService.CurrentLanguage = "fr";
+            }
+
             ConsoleView consoleView = new ConsoleView(viewModel, localizationService);
             consoleView.Start();
         }

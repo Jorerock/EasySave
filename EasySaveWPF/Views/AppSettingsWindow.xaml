@@ -3,11 +3,11 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:sys="clr-namespace:System;assembly=mscorlib"
         xmlns:domain="clr-namespace:EasySave.Core.Domain;assembly=EasySave.Core"
-        Title="App Parameters" Height="686" Width="550"
+        Title="{DynamicResource Settings_Title}"
+        Height="686" Width="550"
         WindowStartupLocation="CenterOwner">
 
     <Window.Resources>
-        <!--load the enum from AppLanguage -->
         <ObjectDataProvider x:Key="LanguageEnumValues"
                             MethodName="GetValues"
                             ObjectType="{x:Type sys:Enum}">
@@ -31,7 +31,7 @@
         <!-- Extensions To Encrypt -->
         <StackPanel Grid.Row="0" Margin="0,5">
             <TextBlock FontWeight="Bold" FontFamily="Cascadia Mono" FontSize="13"
-                       Text="Extensions To Encrypt"/>
+                       Text="{DynamicResource Settings_ExtensionsToEncrypt}"/>
             <CheckBox x:Name="TxtCheckBox" Content=".txt" Margin="0,5"/>
             <CheckBox x:Name="CsvCheckBox" Content=".csv" Margin="0,2"/>
             <CheckBox x:Name="PngCheckBox" Content=".png" Margin="0,2"/>
@@ -43,19 +43,19 @@
         <!-- Business Software Path -->
         <StackPanel Grid.Row="1" Margin="0,5">
             <TextBlock FontWeight="Bold" FontFamily="Cascadia Mono" FontSize="13"
-                       Text="Business Software Path :"/>
-            <TextBlock Text="(Copy-paste the path or type it)"
+                       Text="{DynamicResource Settings_BusinessSoftwarePath}"/>
+            <TextBlock Text="{DynamicResource Settings_BusinessSoftwareHint}"
                        FontSize="11" Foreground="Gray" Margin="0,2"/>
             <TextBox x:Name="SourceTextBox"
                      Margin="0,5"
                      Height="30"
-                     ToolTip="Example: C:\Windows\System32\calc.exe"/>
+                     ToolTip="{DynamicResource Settings_BusinessSoftwareTooltip}"/>
         </StackPanel>
 
-        <!-- Combo is generated from the enum AppLanguage -->
+        <!-- Language -->
         <StackPanel Grid.Row="3" Margin="0,5">
             <TextBlock FontWeight="Bold" FontFamily="Cascadia Mono" FontSize="13"
-                       Text="Language"/>
+                       Text="{DynamicResource Settings_Language}"/>
             <ComboBox x:Name="LanguageComboBox"
                       Margin="0,5" Height="30"
                       ItemsSource="{Binding Source={StaticResource LanguageEnumValues}}"/>
@@ -64,20 +64,22 @@
         <!-- Log Format -->
         <StackPanel Grid.Row="5" Margin="0,5">
             <TextBlock FontWeight="Bold" FontFamily="Cascadia Mono" FontSize="13"
-                       Text="Log Format"/>
+                       Text="{DynamicResource Settings_LogFormat}"/>
             <ComboBox x:Name="LogFormatComboBox" Margin="0,5" Height="30">
                 <ComboBoxItem Content="JSON" IsSelected="True"/>
                 <ComboBoxItem Content="XML"/>
             </ComboBox>
         </StackPanel>
 
-        <!-- Buttons save and cancel -->
+        <!-- Buttons -->
         <StackPanel Grid.Row="6" Orientation="Horizontal"
                     HorizontalAlignment="Right" Margin="0,20,0,0">
-            <Button Content="Save" Width="100" Height="35"
+            <Button Content="{DynamicResource Common_Save}"
+                    Width="100" Height="35"
                     Margin="0,0,10,0" Click="Save_Click"
                     Background="#4CAF50" Foreground="White"/>
-            <Button Content="Cancel" Width="100" Height="35"
+            <Button Content="{DynamicResource Common_Cancel}"
+                    Width="100" Height="35"
                     Click="Cancel_Click"/>
         </StackPanel>
     </Grid>

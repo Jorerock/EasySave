@@ -1,13 +1,16 @@
 ﻿using EasySave.Core.Domain;
-using EasySave.Core.ViewModels;  // ← IMainViewModel
+using EasySave.Core.ViewModels;
+using EasySave.WPF.Localization;
 using System.Windows;
 
 namespace EasySave.WPF.Views
 {
     public partial class MainWindow : Window
     {
-        // ✅ Utilise l'interface, mais le DataContext est WpfMainViewModel
-        private IMainViewModel ViewModel => (IMainViewModel)DataContext;
+        private IMainViewModel ViewModel
+        {
+            get { return (IMainViewModel)DataContext; }
+        }
 
         public MainWindow()
         {
@@ -16,39 +19,51 @@ namespace EasySave.WPF.Views
 
         private void CreateJob_Click(object sender, RoutedEventArgs e)
         {
-            var createWindow = new Views.CreateJobWindow
-            {
-                Owner = this
-            };
+            CreateJobWindow createWindow = new CreateJobWindow();
+            createWindow.Owner = this;
 
-            if (createWindow.ShowDialog() == true)
+            bool? result = createWindow.ShowDialog();
+            if (result == true)
             {
-                var job = createWindow.CreatedJob;
+                BackupJob job = createWindow.CreatedJob;
                 ViewModel.AddJob(job);
 
                 if (!string.IsNullOrEmpty(ViewModel.StatusMessage))
                 {
-                    MessageBox.Show(ViewModel.StatusMessage, "Success",
-                        MessageBoxButton.OK, MessageBoxImage.Information);
+                    MessageBox.Show(ViewModel.StatusMessage,
+                        LocalizationManager.T("Msg_Success"),
+                        MessageBoxButton.OK,
+                        MessageBoxImage.Information);
                 }
             }
         }
 
         private void AppSettings_Click(object sender, RoutedEventArgs e)
         {
-            var currentSettings = ViewModel.GetCurrentSettings();
+            AppSettings currentSettings = ViewModel.GetCurrentSettings();
 
-            var settingsWindow = new AppSettingsWindow(currentSettings)
-            {
-                Owner = this
-            };
+            AppSettingsWindow settingsWindow = new AppSettingsWindow(currentSettings);
+            settingsWindow.Owner = this;
 
-            if (settingsWindow.ShowDialog() == true)
+            bool? result = settingsWindow.ShowDialog();
+            if (result == true)
             {
                 ViewModel.ApplySettings(settingsWindow.AppSettings);
 
-                MessageBox.Show("Settings saved successfully.", "Settings",
-                    MessageBoxButton.OK, MessageBoxImage.Information);
+                // ✅ appliquer langue WPF immédiatement
+                if (settingsWindow.AppSettings.Language == AppLanguage.Francais)
+                {
+                    LocalizationManager.SetCulture("fr-FR");
+                }
+                else
+                {
+                    LocalizationManager.SetCulture("en-US");
+                }
+
+                MessageBox.Show(LocalizationManager.T("Msg_SettingsSaved"),
+                    LocalizationManager.T("Msg_Settings"),
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Information);
             }
         }
     }

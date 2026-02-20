@@ -16,52 +16,31 @@ namespace EasySave.WPF.Views
 
         private void LoadSettings(AppSettings settings)
         {
-            //langage:  Auto fill the langage with the current settings
             LanguageComboBox.SelectedItem = settings.Language;
-
-            // Log format
             LogFormatComboBox.SelectedIndex = settings.LogFormat == "xml" ? 1 : 0;
-
-            // Business software path
             SourceTextBox.Text = settings.BusinessSoftwarePath ?? string.Empty;
 
-            // Check the checkboxes based on the current settings
             if (settings.ExtensionsToEncrypt != null)
             {
-                foreach (var ext in settings.ExtensionsToEncrypt)
+                foreach (string ext in settings.ExtensionsToEncrypt)
                 {
-                    switch (ext.ToLower())
-                    {
-                        case ".txt":
-                            TxtCheckBox.IsChecked = true;
-                            break;
-                        case ".csv":
-                            CsvCheckBox.IsChecked = true;
-                            break;
-                        case ".png":
-                            PngCheckBox.IsChecked = true;
-                            break;
-                        case ".jpg":
-                            JpgCheckBox.IsChecked = true;
-                            break;
-                        case ".docx":
-                            DocxCheckBox.IsChecked = true;
-                            break;
-                        case ".pdf":
-                            PdfCheckBox.IsChecked = true;
-                            break;
-                    }
+                    string lower = ext.ToLower();
+
+                    if (lower == ".txt") TxtCheckBox.IsChecked = true;
+                    else if (lower == ".csv") CsvCheckBox.IsChecked = true;
+                    else if (lower == ".png") PngCheckBox.IsChecked = true;
+                    else if (lower == ".jpg") JpgCheckBox.IsChecked = true;
+                    else if (lower == ".docx") DocxCheckBox.IsChecked = true;
+                    else if (lower == ".pdf") PdfCheckBox.IsChecked = true;
                 }
             }
         }
 
         private void Save_Click(object sender, RoutedEventArgs e)
         {
-            // Select the language from the combo box
-            var selectedLanguage = (AppLanguage)LanguageComboBox.SelectedItem;
+            AppLanguage selectedLanguage = (AppLanguage)LanguageComboBox.SelectedItem;
 
-            // build the list of extensions to encrypt based on the checkboxes
-            var extensions = new List<string>();
+            List<string> extensions = new List<string>();
             if (TxtCheckBox.IsChecked == true) extensions.Add(".txt");
             if (CsvCheckBox.IsChecked == true) extensions.Add(".csv");
             if (PngCheckBox.IsChecked == true) extensions.Add(".png");
@@ -69,13 +48,13 @@ namespace EasySave.WPF.Views
             if (DocxCheckBox.IsChecked == true) extensions.Add(".docx");
             if (PdfCheckBox.IsChecked == true) extensions.Add(".pdf");
 
-            AppSettings = new AppSettings()
-            {
-                LogFormat = LogFormatComboBox.SelectedIndex == 0 ? "json" : "xml",
-                BusinessSoftwarePath = SourceTextBox.Text.Trim(),
-                ExtensionsToEncrypt = extensions
-            };
+            AppSettings settings = new AppSettings();
+            settings.SetLanguage(selectedLanguage); // ✅ IMPORTANT
+            settings.LogFormat = LogFormatComboBox.SelectedIndex == 0 ? "json" : "xml";
+            settings.BusinessSoftwarePath = SourceTextBox.Text.Trim();
+            settings.ExtensionsToEncrypt = extensions;
 
+            AppSettings = settings;
             DialogResult = true;
         }
 
