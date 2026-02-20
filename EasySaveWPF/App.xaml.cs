@@ -37,6 +37,11 @@ namespace EasySave.WPF
             SettingsManager settingsManager = new SettingsManager(settingsRepository);
             AppSettings appSettings = settingsManager.Get();
 
+            // Instantiate detector required by FileSystemBackupEngine
+            IBusinessSoftwareDetector detector = new ProcessBusinessSoftwareDetector();
+
+            IBackupEngine engine = new FileSystemBackupEngine(logWriter, stateWriter, appSettings, detector);
+
             // ✅ Appliquer la langue WPF au démarrage
             if (appSettings.Language == AppLanguage.Francais)
             {
@@ -47,10 +52,20 @@ namespace EasySave.WPF
                 LocalizationManager.SetCulture("en-US");
             }
 
-            IBackupEngine engine = new FileSystemBackupEngine(logWriter, stateWriter, appSettings);
-            BackupOrchestrator orchestrator = new BackupOrchestrator(jobRepository, engine);
 
-            WpfMainViewModel viewModel = new WpfMainViewModel(jobManager, orchestrator,settingsManager);
+            // ViewModel & View
+
+            WpfMainViewModel viewModel = new WpfMainViewModel(
+                jobManager, 
+                orchestrator,
+                settingsManager  
+            );
+
+            var mainWindow = new MainWindow
+            {
+                DataContext = viewModel
+            };
+            mainWindow.DataContext = viewModel;
 
             MainWindow mainWindow = new MainWindow();
             mainWindow.DataContext = viewModel;

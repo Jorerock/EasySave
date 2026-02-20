@@ -1,16 +1,13 @@
 ﻿using EasySave.Core.Domain;
-using EasySave.Core.ViewModels;
-using EasySave.WPF.Localization;
+using EasySave.WPF.ViewModels; 
 using System.Windows;
 
 namespace EasySave.WPF.Views
 {
     public partial class MainWindow : Window
     {
-        private IMainViewModel ViewModel
-        {
-            get { return (IMainViewModel)DataContext; }
-        }
+        // ✅ CORRECTION : Cast vers WpfMainViewModel au lieu de IMainViewModel
+        private WpfMainViewModel ViewModel => (WpfMainViewModel)DataContext;
 
         public MainWindow()
         {
@@ -19,15 +16,17 @@ namespace EasySave.WPF.Views
 
         private void CreateJob_Click(object sender, RoutedEventArgs e)
         {
-            CreateJobWindow createWindow = new CreateJobWindow();
-            createWindow.Owner = this;
+            var createWindow = new CreateJobWindow
+            {
+                Owner = this
+            };
 
             bool? result = createWindow.ShowDialog();
             if (result == true)
             {
-                BackupJob job = createWindow.CreatedJob;
-                ViewModel.AddJob(job);
-
+                var job = createWindow.CreatedJob;
+                ViewModel.AddJob(job);  // ✅ Fonctionne car WpfMainViewModel a AddJob
+                
                 if (!string.IsNullOrEmpty(ViewModel.StatusMessage))
                 {
                     MessageBox.Show(ViewModel.StatusMessage,
