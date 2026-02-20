@@ -1,13 +1,13 @@
 ﻿using EasySave.Core.Domain;
-using EasySave.Core.ViewModels;  // ← IMainViewModel
+using EasySave.WPF.ViewModels; 
 using System.Windows;
 
 namespace EasySave.WPF.Views
 {
     public partial class MainWindow : Window
     {
-        // ✅ Utilise l'interface, mais le DataContext est WpfMainViewModel
-        private IMainViewModel ViewModel => (IMainViewModel)DataContext;
+        // ✅ CORRECTION : Cast vers WpfMainViewModel au lieu de IMainViewModel
+        private WpfMainViewModel ViewModel => (WpfMainViewModel)DataContext;
 
         public MainWindow()
         {
@@ -16,7 +16,7 @@ namespace EasySave.WPF.Views
 
         private void CreateJob_Click(object sender, RoutedEventArgs e)
         {
-            var createWindow = new Views.CreateJobWindow
+            var createWindow = new CreateJobWindow
             {
                 Owner = this
             };
@@ -24,8 +24,8 @@ namespace EasySave.WPF.Views
             if (createWindow.ShowDialog() == true)
             {
                 var job = createWindow.CreatedJob;
-                ViewModel.AddJob(job);
-
+                ViewModel.AddJob(job);  // ✅ Fonctionne car WpfMainViewModel a AddJob
+                
                 if (!string.IsNullOrEmpty(ViewModel.StatusMessage))
                 {
                     MessageBox.Show(ViewModel.StatusMessage, "Success",

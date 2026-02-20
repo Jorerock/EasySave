@@ -51,10 +51,10 @@ namespace EasySave.WPF
 
             BackupOrchestrator orchestrator = new BackupOrchestrator(jobRepository, engine);
 
-    
+
             // ViewModel & View
- 
-            MainViewModel viewModel = new MainViewModel(
+
+            WpfMainViewModel viewModel = new WpfMainViewModel(
                 jobManager, 
                 orchestrator,
                 settingsManager  
@@ -64,6 +64,7 @@ namespace EasySave.WPF
             {
                 DataContext = viewModel
             };
+            mainWindow.DataContext = viewModel;
 
             mainWindow.Show();
         }
