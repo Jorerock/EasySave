@@ -4,7 +4,7 @@ using EasySave.Core.Application;
 using EasySave.Core.Domain;
 using EasySave.Core.Infrastructure;
 using EasySave.View;
-using EasySave.ViewModel;
+using EasySave.Core.ViewModels;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -35,7 +35,7 @@ namespace EasySave
 
             JobManager jobManager = new JobManager(repo);
             BackupOrchestrator orchestrator = new BackupOrchestrator(repo, engine);
-            MainViewModel viewModel = new MainViewModel(jobManager, orchestrator);
+            MainViewModel viewModel = new MainViewModel(jobManager, orchestrator, settingsManager);
 
             // Mode CLI : EasySave.exe 1-3 / 1;3
             if (args != null && args.Length > 0)

@@ -1,8 +1,8 @@
 ﻿using EasySave.Core.Domain;
-using EasySave.ViewModel;
+//using EasySave.ViewModel;
 using System;
 using System.Collections.Generic;
-
+using EasySave.Core.ViewModels;
 namespace EasySave.View
 {
     public sealed class ConsoleView
