@@ -1,0 +1,65 @@
+﻿<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:sys="clr-namespace:System;assembly=System.Runtime">
+
+    <!-- Main Window -->
+    <sys:String x:Key="Main_Title">EasySave</sys:String>
+    <sys:String x:Key="Header_Title">EasySave - Gestionnaire de sauvegardes</sys:String>
+
+    <sys:String x:Key="Jobs_Header">Sauvegardes</sys:String>
+    <sys:String x:Key="Col_Name">Nom</sys:String>
+    <sys:String x:Key="Col_Type">Type</sys:String>
+    <sys:String x:Key="Col_Source">Source</sys:String>
+    <sys:String x:Key="Col_Target">Cible</sys:String>
+    <sys:String x:Key="Col_Encrypted">Chiffré</sys:String>
+
+    <sys:String x:Key="Actions_Header">Actions</sys:String>
+    <sys:String x:Key="Btn_Create">Créer une sauvegarde</sys:String>
+    <sys:String x:Key="Btn_RunSelected">Lancer la sélection</sys:String>
+    <sys:String x:Key="Btn_RunAll">Tout lancer</sys:String>
+    <sys:String x:Key="Btn_Delete">Supprimer</sys:String>
+    <sys:String x:Key="Btn_Settings">Paramètres</sys:String>
+
+    <sys:String x:Key="Details_Header">Détails de la sauvegarde</sys:String>
+    <sys:String x:Key="Lbl_Name">Nom :</sys:String>
+    <sys:String x:Key="Lbl_Type">Type :</sys:String>
+    <sys:String x:Key="Lbl_Source">Source :</sys:String>
+    <sys:String x:Key="Lbl_Target">Cible :</sys:String>
+    <sys:String x:Key="Lbl_Encryption">Chiffrement :</sys:String>
+
+    <sys:String x:Key="Msg_Success">Succès</sys:String>
+    <sys:String x:Key="Msg_Settings">Paramètres</sys:String>
+    <sys:String x:Key="Msg_SettingsSaved">Paramètres enregistrés.</sys:String>
+
+    <!-- Common -->
+    <sys:String x:Key="Common_Save">Enregistrer</sys:String>
+    <sys:String x:Key="Common_Cancel">Annuler</sys:String>
+    <sys:String x:Key="Common_Create">Créer</sys:String>
+    <sys:String x:Key="Common_PathHint">(Copiez-collez le chemin ou saisissez-le)</sys:String>
+
+    <!-- Settings Window -->
+    <sys:String x:Key="Settings_Title">Paramètres</sys:String>
+    <sys:String x:Key="Settings_ExtensionsToEncrypt">Extensions à chiffrer</sys:String>
+    <sys:String x:Key="Settings_BusinessSoftwarePath">Chemin du logiciel métier :</sys:String>
+    <sys:String x:Key="Settings_BusinessSoftwareHint">(Copiez-collez le chemin ou saisissez-le)</sys:String>
+    <sys:String x:Key="Settings_BusinessSoftwareTooltip">Exemple : C:\Windows\System32\calc.exe</sys:String>
+    <sys:String x:Key="Settings_Language">Langue</sys:String>
+    <sys:String x:Key="Settings_LogFormat">Format des logs</sys:String>
+
+    <!-- Create Job Window -->
+    <sys:String x:Key="CreateJob_Title">Créer une sauvegarde</sys:String>
+    <sys:String x:Key="CreateJob_JobName">Nom de la sauvegarde :</sys:String>
+    <sys:String x:Key="CreateJob_SourceDirectory">Répertoire source :</sys:String>
+    <sys:String x:Key="CreateJob_TargetDirectory">Répertoire cible :</sys:String>
+    <sys:String x:Key="CreateJob_BackupType">Type de sauvegarde :</sys:String>
+
+    <sys:String x:Key="BackupType_Full">Complète</sys:String>
+    <sys:String x:Key="BackupType_Differential">Différentielle</sys:String>
+
+    <sys:String x:Key="CreateJob_EncryptionOptions">Options de chiffrement</sys:String>
+    <sys:String x:Key="CreateJob_EnableEncryption">Activer le chiffrement</sys:String>
+    <sys:String x:Key="CreateJob_EncryptionKey">Clé de chiffrement :</sys:String>
+    <sys:String x:Key="CreateJob_ExtensionsToEncrypt">Extensions à chiffrer :</sys:String>
+    <sys:String x:Key="CreateJob_ExtensionsHint">(ex : .docx .pdf .txt - vide = tous les fichiers)</sys:String>
+
+</ResourceDictionary>
