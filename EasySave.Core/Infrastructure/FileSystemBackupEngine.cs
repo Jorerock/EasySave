@@ -15,11 +15,11 @@ namespace EasySave.Core.Infrastructure
         private readonly AppSettings _settings;
         private readonly IBusinessSoftwareDetector _detector;
 
-        public FileSystemBackupEngine(ILogWriter logWriter, IStateWriter stateWriter, AppSettings settings,IBusinessSoftwareDetector detector)
+        public FileSystemBackupEngine(ILogWriter logWriter, IStateWriter stateWriter, AppSettings settings, IBusinessSoftwareDetector detector)
         {
             _logWriter = logWriter ?? throw new ArgumentNullException(nameof(logWriter));
             _stateWriter = stateWriter ?? throw new ArgumentNullException(nameof(stateWriter));
-            _settings = settings;
+            _settings = settings ?? throw new ArgumentNullException(nameof(settings));
             _detector = detector ?? throw new ArgumentNullException(nameof(detector));
         }
 
