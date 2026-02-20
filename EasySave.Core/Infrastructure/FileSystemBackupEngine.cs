@@ -13,17 +13,20 @@ namespace EasySave.Core.Infrastructure
         private readonly ILogWriter _logWriter;
         private readonly IStateWriter _stateWriter;
         private readonly AppSettings _settings;
+        private readonly IBusinessSoftwareDetector _detector;
 
-        public FileSystemBackupEngine(ILogWriter logWriter, IStateWriter stateWriter, AppSettings settings)
+        public FileSystemBackupEngine(ILogWriter logWriter, IStateWriter stateWriter, AppSettings settings,IBusinessSoftwareDetector detector)
         {
             _logWriter = logWriter ?? throw new ArgumentNullException(nameof(logWriter));
             _stateWriter = stateWriter ?? throw new ArgumentNullException(nameof(stateWriter));
             _settings = settings;
+            _detector = detector ?? throw new ArgumentNullException(nameof(detector));
         }
 
 
         public void Run(BackupJob job)
         {
+
             // 1. Vérification via le détecteur injecté
             if (_detector.IsBlocked())
             {
@@ -73,7 +76,7 @@ namespace EasySave.Core.Infrastructure
             try
             {
                 // Créer l'état initial
-                var state = new StateEntry
+                StateEntry stat = new StateEntry
                 {
                     BackupName = job.Name,
                     CurrentSourceUNC = job.SourceDirectory,
