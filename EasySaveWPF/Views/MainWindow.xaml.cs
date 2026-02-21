@@ -1,13 +1,16 @@
 ﻿using EasySave.Core.Domain;
-using EasySave.WPF.ViewModels; 
+using EasySave.WPF.Localization;
+using EasySave.WPF.ViewModels;
 using System.Windows;
 
 namespace EasySave.WPF.Views
 {
     public partial class MainWindow : Window
     {
-        // ✅ CORRECTION : Cast vers WpfMainViewModel au lieu de IMainViewModel
-        private WpfMainViewModel ViewModel => (WpfMainViewModel)DataContext;
+        private WpfMainViewModel ViewModel
+        {
+            get { return (WpfMainViewModel)DataContext; }
+        }
 
         public MainWindow()
         {
@@ -16,23 +19,22 @@ namespace EasySave.WPF.Views
 
         private void CreateJob_Click(object sender, RoutedEventArgs e)
         {
-            var createWindow = new CreateJobWindow
-            {
-                Owner = this
-            };
+            CreateJobWindow createWindow = new CreateJobWindow();
+            createWindow.Owner = this;
 
             bool? result = createWindow.ShowDialog();
             if (result == true)
             {
-                var job = createWindow.CreatedJob;
-                ViewModel.AddJob(job);  // ✅ Fonctionne car WpfMainViewModel a AddJob
-                
+                ViewModel.AddJob(createWindow.CreatedJob);
+
                 if (!string.IsNullOrEmpty(ViewModel.StatusMessage))
                 {
-                    MessageBox.Show(ViewModel.StatusMessage,
+                    MessageBox.Show(
+                        ViewModel.StatusMessage,
                         LocalizationManager.T("Msg_Success"),
                         MessageBoxButton.OK,
-                        MessageBoxImage.Information);
+                        MessageBoxImage.Information
+                    );
                 }
             }
         }
@@ -49,7 +51,6 @@ namespace EasySave.WPF.Views
             {
                 ViewModel.ApplySettings(settingsWindow.AppSettings);
 
-                // ✅ appliquer langue WPF immédiatement
                 if (settingsWindow.AppSettings.Language == AppLanguage.Francais)
                 {
                     LocalizationManager.SetCulture("fr-FR");
@@ -59,10 +60,12 @@ namespace EasySave.WPF.Views
                     LocalizationManager.SetCulture("en-US");
                 }
 
-                MessageBox.Show(LocalizationManager.T("Msg_SettingsSaved"),
+                MessageBox.Show(
+                    LocalizationManager.T("Msg_SettingsSaved"),
                     LocalizationManager.T("Msg_Settings"),
                     MessageBoxButton.OK,
-                    MessageBoxImage.Information);
+                    MessageBoxImage.Information
+                );
             }
         }
     }
