@@ -17,6 +17,8 @@ namespace EasySave.WPF.ViewModels
         // PROPRIÉTÉS WPF (ObservableCollection + SelectedJob)
         // ══════════════════════════════════════════════════════════════════
 
+
+        //Mise a jour de l'ui en auto
         public ObservableCollection<BackupJob> Jobs { get; private set; }
 
         private BackupJob _selectedJob;
@@ -26,7 +28,9 @@ namespace EasySave.WPF.ViewModels
             set
             {
                 _selectedJob = value;
+                //Notifie WPF:
                 OnPropertyChanged(nameof(SelectedJob));
+                // Active/désactive 
                 CommandManager.InvalidateRequerySuggested();
             }
         }

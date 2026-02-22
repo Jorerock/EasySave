@@ -1,15 +1,15 @@
 ﻿using EasySave.Core.Domain;
-using EasySave.Core.ViewModels;
 using EasySave.WPF.Localization;
+using EasySave.WPF.ViewModels;
 using System.Windows;
 
 namespace EasySave.WPF.Views
 {
     public partial class MainWindow : Window
     {
-        private IMainViewModel ViewModel
+        private WpfMainViewModel ViewModel
         {
-            get { return (IMainViewModel)DataContext; }
+            get { return (WpfMainViewModel)DataContext; }
         }
 
         public MainWindow()
@@ -45,8 +45,7 @@ namespace EasySave.WPF.Views
             bool? result = createWindow.ShowDialog();
             if (result == true)
             {
-                BackupJob job = createWindow.CreatedJob;
-                ViewModel.AddJob(job);
+                ViewModel.AddJob(createWindow.CreatedJob);
 
                 if (!string.IsNullOrEmpty(ViewModel.StatusMessage))
                 {
@@ -71,6 +70,7 @@ namespace EasySave.WPF.Views
             if (result == true)
             {
                 ViewModel.ApplySettings(settingsWindow.AppSettings);
+
                 if (settingsWindow.AppSettings.Language == AppLanguage.Francais)
                 {
                     LocalizationManager.SetCulture("fr-FR");

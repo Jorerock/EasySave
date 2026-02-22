@@ -1,6 +1,4 @@
-﻿
-// Infrastructure/FileSystemBackupEngine.cs
-using EasySave.Core.Application;
+﻿using EasySave.Core.Application;
 using EasySave.Core.Domain;
 using System;
 using System.Collections.Generic;
@@ -15,17 +13,45 @@ namespace EasySave.Core.Infrastructure
         private readonly ILogWriter _logWriter;
         private readonly IStateWriter _stateWriter;
         private readonly AppSettings _settings;
+        private readonly IBusinessSoftwareDetector _detector;
 
-        public FileSystemBackupEngine(ILogWriter logWriter, IStateWriter stateWriter, AppSettings settings)
+        public FileSystemBackupEngine(ILogWriter logWriter, IStateWriter stateWriter, AppSettings settings, IBusinessSoftwareDetector detector)
         {
             _logWriter = logWriter ?? throw new ArgumentNullException(nameof(logWriter));
             _stateWriter = stateWriter ?? throw new ArgumentNullException(nameof(stateWriter));
-            _settings = settings;
+            _settings = settings ?? throw new ArgumentNullException(nameof(settings));
+            _detector = detector ?? throw new ArgumentNullException(nameof(detector));
         }
 
 
         public void Run(BackupJob job)
         {
+
+            // 1. Vérification via le détecteur injecté
+            if (_detector.IsBlocked())
+            {
+                // 2. Création de l'état bloqué
+                StateEntry blockedState = new StateEntry
+                {
+                    State = JobRunState.BlockedByBusinessSoftware,
+                };
+                _stateWriter.WriteState(blockedState);
+
+                // 3. Consignation dans le Log 
+                LogEntry log = new LogEntry
+                {
+                    BackupName = job.Name,
+                    Timestamp = DateTime.Now,
+                    SourcePathUNC = job.SourceDirectory,
+                    TargetPathUNC = job.TargetDirectory,
+                    TransferTimeMs = -1
+                };
+                _logWriter.WriteDailyLog(log);
+
+                return; // On arrête l'exécution ici
+            }
+
+            // sinon, continuer la sauvegarde normale
             if (job == null)
                 throw new ArgumentNullException(nameof(job));
 
@@ -49,9 +75,31 @@ namespace EasySave.Core.Infrastructure
 
             try
             {
-                _stateWriter.WriteState(state);
+                // Créer l'état initial
+                StateEntry stat = new StateEntry
+                {
+                    BackupName = job.Name,
+                    CurrentSourceUNC = job.SourceDirectory,
+                    CurrentTargetUNC = job.TargetDirectory,
+                    State = JobRunState.Active,
+                    TotalFiles = 0,
+                    TotalSizeBytes = 0,
+                    FilesRemaining = 0,
+                    ProgressPct = 0
+                };
 
-                // Execute the backup according to its type
+                // Log de début
+                _logWriter.WriteDailyLog(new LogEntry
+                {
+                    Timestamp = DateTime.Now,
+                    BackupName = job.Name,
+                    SourcePathUNC = job.SourceDirectory,
+                    TargetPathUNC = job.TargetDirectory,
+                    FileSizeBytes = 0,
+                    TransferTimeMs = 0
+                });
+
+                // Exécuter la sauvegarde selon le type
                 switch (job.Type)
                 {
                     case BackupType.Full:
@@ -61,37 +109,99 @@ namespace EasySave.Core.Infrastructure
                         ExecuteDifferentialBackup(job, state);
                         break;
                     default:
-                        throw new NotSupportedException($"Unsupported backup type: {job.Type}");
+                        throw new NotSupportedException($"Type de backup non supporté: {job.Type}");
                 }
 
-                state.Timestamp = DateTime.UtcNow;
+                // Mettre à jour l'état final
                 state.State = JobRunState.Completed;
                 state.ProgressPct = 100;
-                state.FilesRemaining = 0;
-                state.SizeRemainingBytes = 0;
-                _stateWriter.WriteState(state);
+                //_stateWriter.WriteState(state);
+                //Todo Write State
             }
             catch (Exception ex)
             {
-                // Mark job as failed in state file
-                state.Timestamp = DateTime.UtcNow;
-                state.State = JobRunState.Failed;
-                _stateWriter.WriteState(state);
-
-                // Log error: TransferTimeMs must be negative on error
+                // Log d'erreur
                 _logWriter.WriteDailyLog(new LogEntry
                 {
-                    Message = " Log error: TransferTimeMs must be negative on error",
-                    Timestamp = DateTime.UtcNow,
+                    Timestamp = DateTime.Now,
                     BackupName = job.Name,
                     SourcePathUNC = job.SourceDirectory,
-                    TargetPathUNC = job.TargetDirectory,
+                    TargetPathUNC = $"ERROR: {ex.Message}",
                     FileSizeBytes = 0,
-                    TransferTimeMs = -1
+                    TransferTimeMs = 0
                 });
                 throw;
             }
         }
+
+        /* public void Run(BackupJob job)
+         {
+             if (job == null)
+                 throw new ArgumentNullException(nameof(job));
+
+             // State must be written in (near) real-time to a SINGLE state.json file.
+             // Logs must be written to a daily JSON file.
+             var state = new StateEntry
+             {
+                 Timestamp = DateTime.UtcNow,
+                 BackupName = job.Name,
+                 CurrentSourceUNC = job.SourceDirectory,
+                 CurrentTargetUNC = job.TargetDirectory,
+                 State = JobRunState.Active,
+                 TotalFiles = 0,
+                 TotalSizeBytes = 0,
+                 FilesRemaining = 0,
+                 SizeRemainingBytes = 0,
+                 ProgressPct = 0
+             };
+
+             try
+             {
+                 _stateWriter.WriteState(state);
+
+                 // Execute the backup according to its type
+                 switch (job.Type)
+                 {
+                     case BackupType.Full:
+                         ExecuteFullBackup(job, state);
+                         break;
+                     case BackupType.Differential:
+                         ExecuteDifferentialBackup(job, state);
+                         break;
+                     default:
+                         throw new NotSupportedException($"Unsupported backup type: {job.Type}");
+                 }
+
+                 state.Timestamp = DateTime.UtcNow;
+                 state.State = JobRunState.Completed;
+                 state.ProgressPct = 100;
+                 state.FilesRemaining = 0;
+                 state.SizeRemainingBytes = 0;
+                 _stateWriter.WriteState(state);
+             }
+             catch (Exception ex)
+             {
+                 // Mark job as failed in state file
+                 state.Timestamp = DateTime.UtcNow;
+                 state.State = JobRunState.Failed;
+                 _stateWriter.WriteState(state);
+
+                 // Log error: TransferTimeMs must be negative on error
+                 _logWriter.WriteDailyLog(new LogEntry
+                 {
+                     Message = " Log error: TransferTimeMs must be negative on error",
+                     Timestamp = DateTime.UtcNow,
+                     BackupName = job.Name,
+                     SourcePathUNC = job.SourceDirectory,
+                     TargetPathUNC = job.TargetDirectory,
+                     FileSizeBytes = 0,
+                     TransferTimeMs = -1
+                 });
+
+                 // Preserve stack trace
+                 throw;
+             }
+         }*/
         private void ExecuteFullBackup(BackupJob job, StateEntry state)
         {
             // Validate and prepare directories
