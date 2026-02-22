@@ -27,9 +27,11 @@ namespace EasySave.WPF.Localization
             Thread.CurrentThread.CurrentCulture = culture;
             Thread.CurrentThread.CurrentUICulture = culture;
 
+            // ✅ On récupère automatiquement le nom de l'assembly WPF (le nom du projet)
             Assembly entryAssembly = Assembly.GetEntryAssembly();
             string assemblyName = entryAssembly != null ? entryAssembly.GetName().Name : "EasySave.WPF";
 
+            // pack URI correct sans hardcoder "EasySave.WPF"
             string uriString = "pack://application:,,,/" + assemblyName + ";component/" + DictPrefix + cultureName + ".xaml";
             Uri dictUri = new Uri(uriString, UriKind.Absolute);
 
