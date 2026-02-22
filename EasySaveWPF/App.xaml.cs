@@ -67,6 +67,7 @@ namespace EasySave.WPF
             MainWindow mainWindow = new MainWindow();
             mainWindow.DataContext = viewModel;
             mainWindow.Show();
+
         }
     }
 }
