@@ -4,6 +4,7 @@ using EasySave.Core.Application;
 using EasySave.Core.Domain;
 using EasySave.Core.Infrastructure;
 using EasySave.WPF.Localization;
+
 using EasySave.WPF.ViewModels;
 using EasySave.WPF.Views;
 using System;
@@ -39,31 +40,35 @@ namespace EasySave.WPF
             SettingsManager settingsManager = new SettingsManager(settingsRepository);
             AppSettings appSettings = settingsManager.Get();
 
-            // Detector required by FileSystemBackupEngine (V2.0)
+            // Detector
             IBusinessSoftwareDetector detector = new ProcessBusinessSoftwareDetector();
 
-            // Engine + Orchestrator
+            // Engine (CLI / séquentiel)
             IBackupEngine engine = new FileSystemBackupEngine(logWriter, stateWriter, appSettings, detector);
+
+            // Orchestrateur séquentiel (héritage CLI)
             BackupOrchestrator orchestrator = new BackupOrchestrator(jobRepository, engine);
 
-            // Apply WPF language at startup
+            // ── NOUVEAU : Orchestrateur parallèle ──────────────────────────
+            // Factory qui crée un moteur par job (chaque job a son propre reporter)
+            var engineFactory = new FileSystemBackupEngineFactory(logWriter, stateWriter, appSettings, detector);
+            var parallelOrchestrator = new ParallelBackupOrchestrator(engineFactory);
+
+            // Langue
             if (appSettings.Language == AppLanguage.Francais)
-            {
                 LocalizationManager.SetCulture("fr-FR");
-            }
             else
-            {
                 LocalizationManager.SetCulture("en-US");
-            }
 
             // ViewModel
             WpfMainViewModel viewModel = new WpfMainViewModel(
                 jobManager,
                 orchestrator,
-                settingsManager
+                settingsManager,
+                parallelOrchestrator
             );
 
-            // MainWindow (UNIQUE)
+            // MainWindow
             MainWindow mainWindow = new MainWindow();
             mainWindow.DataContext = viewModel;
             mainWindow.Show();

@@ -13,4 +13,16 @@
         public string? EncryptionKey { get; set; }
 
     }
+
+    public enum JobState
+    {
+        Idle,
+        Active,
+        Paused,
+        Completed,
+        Failed,
+        Stopped,
+        BlockedByBusinessSoftware
+    }
+
 }
