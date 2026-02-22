@@ -1,26 +1,29 @@
 ﻿using System;
 using System.Collections.ObjectModel;
 using System.Linq;
+using System.Windows;
 using System.Windows.Input;
+using EasySave.Core.Application;
 using EasySave.Core.Domain;
 using EasySave.Core.ViewModels;
-using EasySave.Core.Application;
+
 
 namespace EasySave.WPF.ViewModels
 {
     /// <summary>
-    /// ViewModel WPF qui étend MainViewModel avec ObservableCollection et Commands
+    /// ViewModel WPF étendu avec exécution parallèle et contrôles Pause/Play/Stop.
     /// </summary>
     public class WpfMainViewModel : MainViewModel
     {
-        // ══════════════════════════════════════════════════════════════════
-        // PROPRIÉTÉS WPF (ObservableCollection + SelectedJob)
-        // ══════════════════════════════════════════════════════════════════
+        private readonly ParallelBackupOrchestrator _parallelOrchestrator;
 
-
-        //Mise a jour de l'ui en auto
+        // ── Liste des jobs enregistrés (édition) ──────────────────────
         public ObservableCollection<BackupJob> Jobs { get; private set; }
 
+        // ── Liste des jobs EN COURS (monitoring live) ─────────────────
+        public ObservableCollection<BackupJobViewModel> RunningJobs { get; private set; }
+
+        // ── Job sélectionné dans la liste Jobs ────────────────────────
         private BackupJob _selectedJob;
         public BackupJob SelectedJob
         {
@@ -28,65 +31,110 @@ namespace EasySave.WPF.ViewModels
             set
             {
                 _selectedJob = value;
-                //Notifie WPF:
                 OnPropertyChanged(nameof(SelectedJob));
-                // Active/désactive 
                 CommandManager.InvalidateRequerySuggested();
             }
         }
 
-        // ══════════════════════════════════════════════════════════════════
-        // COMMANDES WPF
-        // ══════════════════════════════════════════════════════════════════
-
+        // ── Commandes ─────────────────────────────────────────────────
         public ICommand DeleteJobCommand { get; }
         public ICommand RunJobCommand { get; }
         public ICommand RunAllCommand { get; }
 
-        // ══════════════════════════════════════════════════════════════════
-        // CONSTRUCTEUR
-        // ══════════════════════════════════════════════════════════════════
+        // Commandes globales (agissent sur tous les RunningJobs)
+        public ICommand PauseAllCommand { get; }
+        public ICommand PlayAllCommand { get; }
+        public ICommand StopAllCommand { get; }
+        public ICommand ClearFinishedCommand { get; }
 
-        public WpfMainViewModel(JobManager jobManager, BackupOrchestrator orchestrator, SettingsManager settingsManager)
+        // ══════════════════════════════════════════════════════════════
+        // CONSTRUCTEUR
+        // ══════════════════════════════════════════════════════════════
+
+        public WpfMainViewModel(
+            JobManager jobManager,
+            BackupOrchestrator orchestrator,
+            SettingsManager settingsManager,
+            ParallelBackupOrchestrator parallelOrchestrator)
             : base(jobManager, orchestrator, settingsManager)
         {
-            // Charge les jobs dans l'ObservableCollection
-            Jobs = new ObservableCollection<BackupJob>(ListJobs());
+            _parallelOrchestrator = parallelOrchestrator ?? throw new ArgumentNullException(nameof(parallelOrchestrator));
 
-            // S'abonne aux changements de jobs pour synchroniser l'ObservableCollection
+            Jobs = new ObservableCollection<BackupJob>(ListJobs());
+            RunningJobs = new ObservableCollection<BackupJobViewModel>();
+
             JobsChanged += OnJobsChangedHandler;
 
-            // Initialise les commandes WPF
-            DeleteJobCommand = new RelayCommand(_ => ExecuteDeleteJob(), _ => CanExecuteDeleteJob());
-            RunJobCommand = new RelayCommand(_ => ExecuteRunJob(), _ => CanExecuteRunJob());
-            RunAllCommand = new RelayCommand(_ => ExecuteRunAll(), _ => CanExecuteRunAll());
+            // Commandes jobs
+            DeleteJobCommand = new RelayCommand(_ => ExecuteDeleteJob(), _ => SelectedJob != null);
+            RunJobCommand = new RelayCommand(_ => ExecuteRunJob(), _ => SelectedJob != null);
+            RunAllCommand = new RelayCommand(_ => ExecuteRunAll(), _ => Jobs.Count > 0);
+
+            // Commandes globales
+            PauseAllCommand = new RelayCommand(_ => PauseAll());
+            PlayAllCommand = new RelayCommand(_ => PlayAll());
+            StopAllCommand = new RelayCommand(_ => StopAll());
+            ClearFinishedCommand = new RelayCommand(_ => ClearFinished());
         }
 
-        // ══════════════════════════════════════════════════════════════════
-        // SYNCHRONISATION OBSERVABLECOLLECTION
-        // ══════════════════════════════════════════════════════════════════
+        // ══════════════════════════════════════════════════════════════
+        // EXÉCUTION PARALLÈLE
+        // ══════════════════════════════════════════════════════════════
 
-        private void OnJobsChangedHandler(object sender, EventArgs e)
+        private void ExecuteRunJob()
         {
-            // Recharge la liste depuis le Core
-            var newJobs = ListJobs();
+            if (SelectedJob == null) return;
 
-            // Synchronise l'ObservableCollection
-            Jobs.Clear();
-            foreach (var job in newJobs)
-            {
-                Jobs.Add(job);
-            }
+            var execution = _parallelOrchestrator.RunOne(SelectedJob);
+            Application.Current.Dispatcher.Invoke(() => RunningJobs.Add(new BackupJobViewModel(execution)));
+            StatusMessage = $"Démarrage de '{SelectedJob.Name}'...";
         }
 
-        // ══════════════════════════════════════════════════════════════════
-        // SURCHARGES POUR SYNCHRONISER OBSERVABLECOLLECTION
-        // ══════════════════════════════════════════════════════════════════
+        private void ExecuteRunAll()
+        {
+            var executions = _parallelOrchestrator.RunAll(Jobs);
+            foreach (var execution in executions)
+                RunningJobs.Add(new BackupJobViewModel(execution));
+            StatusMessage = $"{executions.Count} job(s) lancés en parallèle.";
+        }
+
+        // ══════════════════════════════════════════════════════════════
+        // CONTRÔLES GLOBAUX
+        // ══════════════════════════════════════════════════════════════
+
+        public void PauseAll()
+        {
+            foreach (var vm in RunningJobs)
+                if (vm.IsRunning) vm.Pause();
+        }
+
+        public void PlayAll()
+        {
+            foreach (var vm in RunningJobs)
+                if (vm.IsPaused) vm.Play();
+        }
+
+        public void StopAll()
+        {
+            foreach (var vm in RunningJobs)
+                if (!vm.IsFinished) vm.Stop();
+        }
+
+        public void ClearFinished()
+        {
+            var finished = RunningJobs.Where(vm => vm.IsFinished).ToList();
+            foreach (var vm in finished)
+                RunningJobs.Remove(vm);
+        }
+
+        // ══════════════════════════════════════════════════════════════
+        // GESTION JOBS (liste)
+        // ══════════════════════════════════════════════════════════════
 
         public new void AddJob(BackupJob job)
         {
             base.AddJob(job);
-            Jobs.Add(job);
+            Application.Current.Dispatcher.Invoke(() => Jobs.Add(job));
         }
 
         public new void DeleteJob(int id)
@@ -95,41 +143,26 @@ namespace EasySave.WPF.ViewModels
             base.DeleteJob(id);
 
             if (job != null)
-            {
-                Jobs.Remove(job);
-            }
+                Application.Current.Dispatcher.Invoke(() => Jobs.Remove(job));
 
             if (SelectedJob?.Id == id)
-            {
                 SelectedJob = null;
-            }
         }
-
-        // ══════════════════════════════════════════════════════════════════
-        // IMPLÉMENTATION DES COMMANDES
-        // ══════════════════════════════════════════════════════════════════
 
         private void ExecuteDeleteJob()
         {
-            if (SelectedJob == null) return;
-            DeleteJob(SelectedJob.Id);
+            if (SelectedJob != null) DeleteJob(SelectedJob.Id);
         }
 
-        private bool CanExecuteDeleteJob() => SelectedJob != null;
-
-        private void ExecuteRunJob()
+        private void OnJobsChangedHandler(object sender, EventArgs e)
         {
-            if (SelectedJob == null) return;
-            RunJob(SelectedJob.Id);
+            var newJobs = ListJobs();
+            Application.Current.Dispatcher.Invoke(() =>
+            {
+                Jobs.Clear();
+                foreach (var job in newJobs)
+                    Jobs.Add(job);
+            });
         }
-
-        private bool CanExecuteRunJob() => SelectedJob != null;
-
-        private void ExecuteRunAll()
-        {
-            RunAll();
-        }
-
-        private bool CanExecuteRunAll() => Jobs.Count > 0;
     }
 }
