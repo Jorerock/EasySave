@@ -15,6 +15,26 @@ namespace EasySave.WPF.Views
         public MainWindow()
         {
             InitializeComponent();
+            RefreshDataGridHeaders();
+        }
+
+        private void RefreshDataGridHeaders()
+        {
+            if (JobsDataGrid == null)
+            {
+                return;
+            }
+
+            if (JobsDataGrid.Columns == null || JobsDataGrid.Columns.Count < 5)
+            {
+                return;
+            }
+
+            JobsDataGrid.Columns[0].Header = LocalizationManager.T("Col_Name");
+            JobsDataGrid.Columns[1].Header = LocalizationManager.T("Col_Type");
+            JobsDataGrid.Columns[2].Header = LocalizationManager.T("Col_Source");
+            JobsDataGrid.Columns[3].Header = LocalizationManager.T("Col_Target");
+            JobsDataGrid.Columns[4].Header = LocalizationManager.T("Col_Encrypted");
         }
 
         private void CreateJob_Click(object sender, RoutedEventArgs e)
@@ -59,6 +79,7 @@ namespace EasySave.WPF.Views
                 {
                     LocalizationManager.SetCulture("en-US");
                 }
+                RefreshDataGridHeaders();
 
                 MessageBox.Show(
                     LocalizationManager.T("Msg_SettingsSaved"),

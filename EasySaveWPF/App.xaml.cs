@@ -60,7 +60,6 @@ namespace EasySave.WPF
             else
                 LocalizationManager.SetCulture("en-US");
 
-            // ViewModel
             WpfMainViewModel viewModel = new WpfMainViewModel(
                 jobManager,
                 orchestrator,
@@ -72,6 +71,7 @@ namespace EasySave.WPF
             MainWindow mainWindow = new MainWindow();
             mainWindow.DataContext = viewModel;
             mainWindow.Show();
+
         }
     }
 }
