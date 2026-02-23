@@ -219,11 +219,12 @@
                 </Grid.RowDefinitions>
 
                 <GroupBox Grid.Row="0" Header="{DynamicResource Jobs_Header}" Margin="0,0,10,0">
-                    <DataGrid ItemsSource="{Binding Jobs}"
-                              SelectedItem="{Binding SelectedJob}"
-                              AutoGenerateColumns="False"
-                              CanUserAddRows="False"
-                              SelectionMode="Single">
+                    <DataGrid x:Name="JobsDataGrid"
+          ItemsSource="{Binding Jobs}"
+          SelectedItem="{Binding SelectedJob}"
+          AutoGenerateColumns="False"
+          CanUserAddRows="False"
+          SelectionMode="Single">
                         <DataGrid.Columns>
                             <DataGridTextColumn Header="{DynamicResource Col_Name}"
                                                 Binding="{Binding Name}" Width="*"/>
