@@ -12,12 +12,15 @@ namespace EasySave.Core.Domain
     public class AppSettings
     {
         public AppLanguage Language { get; set; }
-
         public string LogFormat { get; set; } = "json";
         public List<string> ExtensionsToEncrypt { get; set; } = new List<string>();
         public string BusinessSoftwarePath { get; set; } = "";
+        public List<string> PriorityExtensions { get; set; } = new();// ex: [".pdf",".docx"]
+        public int LargeFileThresholdKo { get; set; } = 1024;
+        public string LogMode { get; set; } = "local"; // local | central | both
+        public string CentralLogUrl { get; set; } = "http://localhost:5080"; // docker service
 
-        
+
         public AppSettings()
         {
             Language = AppLanguage.Anglais;
