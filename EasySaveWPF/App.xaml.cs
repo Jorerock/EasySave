@@ -43,15 +43,18 @@ namespace EasySave.WPF
             // Detector
             IBusinessSoftwareDetector detector = new ProcessBusinessSoftwareDetector();
 
+             long thresholdKo = 100 * 1024 ; // 100 MB
+            
+
             // Engine (CLI / séquentiel)
-            IBackupEngine engine = new FileSystemBackupEngine(logWriter, stateWriter, appSettings, detector);
+            IBackupEngine engine = new FileSystemBackupEngine(logWriter, stateWriter, appSettings, detector ,thresholdKo);
 
             // Orchestrateur séquentiel (héritage CLI)
             BackupOrchestrator orchestrator = new BackupOrchestrator(jobRepository, engine);
 
             // ── NOUVEAU : Orchestrateur parallèle ──────────────────────────
             // Factory qui crée un moteur par job (chaque job a son propre reporter)
-            var engineFactory = new FileSystemBackupEngineFactory(logWriter, stateWriter, appSettings, detector);
+            var engineFactory = new FileSystemBackupEngineFactory(logWriter, stateWriter, appSettings, detector, thresholdKo);
             var parallelOrchestrator = new ParallelBackupOrchestrator(engineFactory);
 
             // Langue

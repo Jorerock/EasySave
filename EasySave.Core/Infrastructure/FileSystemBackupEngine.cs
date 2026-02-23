@@ -14,47 +14,56 @@ namespace EasySave.Core.Infrastructure
     /// Moteur de sauvegarde étendu avec support Pause/Play/Stop via IProgressReporter.
     /// Implémente à la fois IBackupEngine (compatibilité CLI) et IBackupEngineWithProgress (WPF parallèle).
     /// </summary>
+    /// 
+
     public class FileSystemBackupEngine : IBackupEngine, IBackupEngineWithProgress
     {
         private readonly ILogWriter _logWriter;
         private readonly IStateWriter _stateWriter;
         private readonly AppSettings _settings;
         private readonly IBusinessSoftwareDetector _detector;
+        private readonly long _largeFileSizeThreshold;
+        // Sémaphore pour limiter le parallélisme des gros fichiers
+        // On l'initialise à 1 pour forcer le mode séquentiel sur les gros fichiers
+        private static readonly SemaphoreSlim _largeFileSemaphore = new SemaphoreSlim(1, 1);
 
         public FileSystemBackupEngine(
             ILogWriter logWriter,
             IStateWriter stateWriter,
             AppSettings settings,
-            IBusinessSoftwareDetector detector)
+            IBusinessSoftwareDetector detector , long thresholdKo)
         {
             _logWriter = logWriter ?? throw new ArgumentNullException(nameof(logWriter));
             _stateWriter = stateWriter ?? throw new ArgumentNullException(nameof(stateWriter));
             _settings = settings ?? throw new ArgumentNullException(nameof(settings));
             _detector = detector ?? throw new ArgumentNullException(nameof(detector));
+            _largeFileSizeThreshold = thresholdKo * 1024 ; // Conversion Ko vers Octets
         }
 
         // ── IBackupEngine (CLI — sans progression) ────────────────────
         public void Run(BackupJob job)
             => Run(job, null);
 
-        // ── IBackupEngineWithProgress (WPF parallèle) ─────────────────
-        public void Run(BackupJob job, IProgressReporter reporter)
+
+        public async Task Run(BackupJob job, IProgressReporter reporter)
         {
             if (job == null) throw new ArgumentNullException(nameof(job));
 
-            // Vérification logiciel métier
-            if (_detector.IsBlocked())
+            // 1. GESTION DE LA PAUSE / BLOCAGE (Logiciel Métier)
+            // On boucle tant que le logiciel métier est détecté pour mettre en pause
+            while (_detector.IsBlocked())
             {
-                _stateWriter.WriteState(new StateEntry { State = JobRunState.BlockedByBusinessSoftware });
-                _logWriter.WriteDailyLog(new LogEntry
+                _stateWriter.WriteState(new StateEntry
                 {
                     BackupName = job.Name,
-                    Timestamp = DateTime.Now,
-                    SourcePathUNC = job.SourceDirectory,
-                    TargetPathUNC = job.TargetDirectory,
-                    TransferTimeMs = -1
+                    State = JobRunState.BlockedByBusinessSoftware
                 });
-                return;
+
+                // Attente avant nouvelle vérification (évite de saturer le CPU)
+                Thread.Sleep(2000);
+
+                // Permet l'arrêt si l'utilisateur clique sur "Stop" pendant la pause
+                if (reporter?.CancellationToken.IsCancellationRequested == true) break;
             }
 
             var state = new StateEntry
@@ -83,6 +92,10 @@ namespace EasySave.Core.Infrastructure
                     TransferTimeMs = 0
                 });
 
+                // 2. LOGIQUE DE TRANSFERT AVEC LIMITE DE PARALLÉLISME
+                // Note : La logique de vérification de taille (n Ko) doit être injectée 
+                // dans ExecuteFullBackup / ExecuteDifferentialBackup pour entourer le File.Copy
+
                 switch (job.Type)
                 {
                     case BackupType.Full:
@@ -95,7 +108,6 @@ namespace EasySave.Core.Infrastructure
                         throw new NotSupportedException($"Type de backup non supporté : {job.Type}");
                 }
 
-                // Vérifier si annulé avant de marquer Completed
                 reporter?.CancellationToken.ThrowIfCancellationRequested();
 
                 state.State = JobRunState.Completed;
@@ -106,7 +118,7 @@ namespace EasySave.Core.Infrastructure
             {
                 state.State = JobRunState.Stopped;
                 _stateWriter.WriteState(state);
-                throw; // propagé vers ParallelBackupOrchestrator
+                throw;
             }
             catch (Exception ex)
             {
@@ -134,10 +146,8 @@ namespace EasySave.Core.Infrastructure
             var sourceDir = new DirectoryInfo(job.SourceDirectory);
             var targetDir = new DirectoryInfo(job.TargetDirectory);
 
-            if (!sourceDir.Exists)
-                throw new DirectoryNotFoundException($"Source introuvable : {job.SourceDirectory}");
-            if (!targetDir.Exists)
-                targetDir.Create();
+            if (!sourceDir.Exists) throw new DirectoryNotFoundException($"Source introuvable : {job.SourceDirectory}");
+            if (!targetDir.Exists) targetDir.Create();
 
             CryptoSoftEncryptorAdapter encryptor = BuildEncryptor(job);
             var files = sourceDir.GetFiles("*", SearchOption.AllDirectories);
@@ -149,15 +159,36 @@ namespace EasySave.Core.Infrastructure
             int filesCopied = 0;
             foreach (var file in files)
             {
-                // ── Point de contrôle Stop ──────────────────────────
-                reporter?.CancellationToken.ThrowIfCancellationRequested();
+                // 1. VÉRIFICATION LOGICIEL MÉTIER (PAUSE)
+                while (_detector.IsBlocked())
+                {
+                    state.State = JobRunState.BlockedByBusinessSoftware;
+                    _stateWriter.WriteState(state);
+                    Thread.Sleep(1000); // Attente avant re-test
+                    if (reporter?.CancellationToken.IsCancellationRequested == true) break;
+                }
+                state.State = JobRunState.Active;
 
-                // ── Reporter : fichier en cours ─────────────────────
+                reporter?.CancellationToken.ThrowIfCancellationRequested();
                 reporter?.ReportFile(file.FullName, files.Length - filesCopied, files.Length);
 
                 try
                 {
-                    ProcessFile(file, sourceDir, targetDir, job, encryptor);
+                    // 2. GESTION DU PARALLÉLISME (Fichiers > N Ko)
+                    // Seuil récupéré depuis vos paramètres (ex: 100 Ko)
+                    long thresholdBytes = _largeFileSizeThreshold;
+
+                    if (file.Length > thresholdBytes)
+                    {
+                        _largeFileSemaphore.Wait(); // Attend son tour
+                        try { ProcessFile(file, sourceDir, targetDir, job, encryptor); }
+                        finally { _largeFileSemaphore.Release(); }
+                    }
+                    else
+                    {
+                        ProcessFile(file, sourceDir, targetDir, job, encryptor);
+                    }
+
                     filesCopied++;
                 }
                 catch (Exception ex)
@@ -166,42 +197,238 @@ namespace EasySave.Core.Infrastructure
                 }
                 finally
                 {
-                    int pct = files.Length > 0
-                        ? (int)((filesCopied / (double)files.Length) * 100)
-                        : 0;
-
-                    state.FilesRemaining = files.Length - filesCopied;
-                    state.ProgressPct = pct;
-                    _stateWriter.WriteState(state);
-
-                    // ── Reporter : mise à jour progression ──────────
-                    reporter?.ReportProgress(pct, state.FilesRemaining);
+                    UpdateStateAndReport(state, files.Length, filesCopied, reporter);
                 }
 
-                // ── Point de contrôle Pause (APRÈS le fichier) ──────
                 reporter?.WaitIfPaused();
             }
         }
 
-        // ══════════════════════════════════════════════════════════════
-        // DIFFERENTIAL BACKUP
-        // ══════════════════════════════════════════════════════════════
-
+        // --- DIFFERENTIAL BACKUP ---
         private void ExecuteDifferentialBackup(BackupJob job, StateEntry state, IProgressReporter reporter)
         {
             var sourceDir = new DirectoryInfo(job.SourceDirectory);
             var targetDir = new DirectoryInfo(job.TargetDirectory);
 
-            if (!sourceDir.Exists)
-                throw new DirectoryNotFoundException($"Source introuvable : {job.SourceDirectory}");
-            if (!targetDir.Exists)
-                targetDir.Create();
+            if (!sourceDir.Exists) throw new DirectoryNotFoundException($"Source introuvable : {job.SourceDirectory}");
+            if (!targetDir.Exists) targetDir.Create();
 
             CryptoSoftEncryptorAdapter encryptor = BuildEncryptor(job);
+            var filesToCopy = GetDifferentialFiles(sourceDir, targetDir);
 
+            state.TotalFiles = filesToCopy.Count;
+            state.TotalSizeBytes = filesToCopy.Sum(f => f.Length);
+            state.FilesRemaining = filesToCopy.Count;
+
+            int filesCopied = 0;
+            foreach (var file in filesToCopy)
+            {
+                // 1. VÉRIFICATION LOGICIEL MÉTIER (PAUSE)
+                while (_detector.IsBlocked())
+                {
+                    state.State = JobRunState.BlockedByBusinessSoftware;
+                    _stateWriter.WriteState(state);
+                    Thread.Sleep(1000);
+                    if (reporter?.CancellationToken.IsCancellationRequested == true) break;
+                }
+                state.State = JobRunState.Active;
+
+                reporter?.CancellationToken.ThrowIfCancellationRequested();
+                reporter?.ReportFile(file.FullName, filesToCopy.Count - filesCopied, filesToCopy.Count);
+
+                try
+                {
+                    // 2. GESTION DU PARALLÉLISME (Fichiers > N Ko)
+                    long thresholdBytes = _largeFileSizeThreshold;
+
+                    if (file.Length > thresholdBytes)
+                    {
+                        _largeFileSemaphore.Wait();
+                        try { ProcessFile(file, sourceDir, targetDir, job, encryptor); }
+                        finally { _largeFileSemaphore.Release(); }
+                    }
+                    else
+                    {
+                        ProcessFile(file, sourceDir, targetDir, job, encryptor);
+                    }
+
+                    filesCopied++;
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Erreur sur {file.FullName}: {ex.Message}");
+                }
+                finally
+                {
+                    UpdateStateAndReport(state, filesToCopy.Count, filesCopied, reporter);
+                }
+
+                reporter?.WaitIfPaused();
+            }
+        }
+
+        // Méthode utilitaire pour éviter la duplication du code de reporting
+        private void UpdateStateAndReport(StateEntry state, int totalFiles, int filesCopied, IProgressReporter reporter)
+        {
+            int pct = totalFiles > 0 ? (int)((filesCopied / (double)totalFiles) * 100) : 0;
+            state.FilesRemaining = totalFiles - filesCopied;
+            state.ProgressPct = pct;
+            _stateWriter.WriteState(state);
+            reporter?.ReportProgress(pct, state.FilesRemaining);
+        }
+
+        /*  private void ExecuteFullBackup(BackupJob job, StateEntry state, IProgressReporter reporter)
+          {
+              var sourceDir = new DirectoryInfo(job.SourceDirectory);
+              var targetDir = new DirectoryInfo(job.TargetDirectory);
+
+              if (!sourceDir.Exists)
+                  throw new DirectoryNotFoundException($"Source introuvable : {job.SourceDirectory}");
+              if (!targetDir.Exists)
+                  targetDir.Create();
+
+              CryptoSoftEncryptorAdapter encryptor = BuildEncryptor(job);
+              var files = sourceDir.GetFiles("*", SearchOption.AllDirectories);
+
+              state.TotalFiles = files.Length;
+              state.TotalSizeBytes = files.Sum(f => f.Length);
+              state.FilesRemaining = files.Length;
+
+              int filesCopied = 0;
+              foreach (var file in files)
+              {
+                  // ── Point de contrôle Stop ──────────────────────────
+                  reporter?.CancellationToken.ThrowIfCancellationRequested();
+
+                  // ── Reporter : fichier en cours ─────────────────────
+                  reporter?.ReportFile(file.FullName, files.Length - filesCopied, files.Length);
+
+                  try
+                  {
+                      ProcessFile(file, sourceDir, targetDir, job, encryptor);
+                      filesCopied++;
+                  }
+                  catch (Exception ex)
+                  {
+                      Console.WriteLine($"Erreur sur {file.FullName}: {ex.Message}");
+                  }
+                  finally
+                  {
+                      int pct = files.Length > 0
+                          ? (int)((filesCopied / (double)files.Length) * 100)
+                          : 0;
+
+                      state.FilesRemaining = files.Length - filesCopied;
+                      state.ProgressPct = pct;
+                      _stateWriter.WriteState(state);
+
+                      // ── Reporter : mise à jour progression ──────────
+                      reporter?.ReportProgress(pct, state.FilesRemaining);
+                  }
+
+                  // ── Point de contrôle Pause (APRÈS le fichier) ──────
+                  reporter?.WaitIfPaused();
+              }
+          }
+
+          // ══════════════════════════════════════════════════════════════
+          // DIFFERENTIAL BACKUP
+          // ══════════════════════════════════════════════════════════════
+
+          private void ExecuteDifferentialBackup(BackupJob job, StateEntry state, IProgressReporter reporter)
+          {
+              var sourceDir = new DirectoryInfo(job.SourceDirectory);
+              var targetDir = new DirectoryInfo(job.TargetDirectory);
+
+              if (!sourceDir.Exists)
+                  throw new DirectoryNotFoundException($"Source introuvable : {job.SourceDirectory}");
+              if (!targetDir.Exists)
+                  targetDir.Create();
+
+              CryptoSoftEncryptorAdapter encryptor = BuildEncryptor(job);
+
+              var sourceFiles = sourceDir.GetFiles("*", SearchOption.AllDirectories);
+              var filesToCopy = new List<FileInfo>();
+              long totalSize = 0;
+
+              foreach (var sourceFile in sourceFiles)
+              {
+                  var relativePath = Path.GetRelativePath(sourceDir.FullName, sourceFile.FullName);
+                  var targetPath = Path.Combine(targetDir.FullName, relativePath);
+
+                  bool shouldCopy = !File.Exists(targetPath);
+                  if (!shouldCopy)
+                  {
+                      var targetFile = new FileInfo(targetPath);
+                      shouldCopy = sourceFile.Length != targetFile.Length ||
+                                   Math.Abs((sourceFile.LastWriteTime - targetFile.LastWriteTime).TotalSeconds) > 1;
+                  }
+
+                  if (shouldCopy)
+                  {
+                      filesToCopy.Add(sourceFile);
+                      totalSize += sourceFile.Length;
+                  }
+              }
+
+              state.TotalFiles = filesToCopy.Count;
+              state.TotalSizeBytes = totalSize;
+              state.FilesRemaining = filesToCopy.Count;
+              state.SizeRemainingBytes = totalSize;
+              state.Timestamp = DateTime.UtcNow;
+              _stateWriter.WriteState(state);
+
+              int filesCopied = 0;
+              foreach (var file in filesToCopy)
+              {
+                  // ── Stop ─────────────────────────────────────────────
+                  reporter?.CancellationToken.ThrowIfCancellationRequested();
+
+                  reporter?.ReportFile(file.FullName, filesToCopy.Count - filesCopied, filesToCopy.Count);
+
+                  try
+                  {
+                      ProcessFile(file, sourceDir, targetDir, job, encryptor);
+                      filesCopied++;
+                  }
+                  catch (Exception ex)
+                  {
+                      Console.WriteLine($"Erreur sur {file.FullName}: {ex.Message}");
+                  }
+                  finally
+                  {
+                      int pct = filesToCopy.Count > 0
+                          ? (int)((filesCopied / (double)filesToCopy.Count) * 100)
+                          : 0;
+
+                      state.FilesRemaining = filesToCopy.Count - filesCopied;
+                      state.ProgressPct = pct;
+                      _stateWriter.WriteState(state);
+
+                      reporter?.ReportProgress(pct, state.FilesRemaining);
+                  }
+
+                  // ── Pause (APRÈS le fichier) ─────────────────────────
+                  reporter?.WaitIfPaused();
+              }
+          }*/
+
+        // ══════════════════════════════════════════════════════════════
+        // HELPERS
+        // ══════════════════════════════════════════════════════════════
+
+        private CryptoSoftEncryptorAdapter BuildEncryptor(BackupJob job)
+        {
+            if (job.EnableEncryption && !string.IsNullOrEmpty(job.EncryptionKey))
+                return new CryptoSoftEncryptorAdapter(job.EncryptionKey, _logWriter, _settings);
+            return null;
+        }
+
+        // Added helper to compute differential files
+        private List<FileInfo> GetDifferentialFiles(DirectoryInfo sourceDir, DirectoryInfo targetDir)
+        {
             var sourceFiles = sourceDir.GetFiles("*", SearchOption.AllDirectories);
             var filesToCopy = new List<FileInfo>();
-            long totalSize = 0;
 
             foreach (var sourceFile in sourceFiles)
             {
@@ -217,63 +444,10 @@ namespace EasySave.Core.Infrastructure
                 }
 
                 if (shouldCopy)
-                {
                     filesToCopy.Add(sourceFile);
-                    totalSize += sourceFile.Length;
-                }
             }
 
-            state.TotalFiles = filesToCopy.Count;
-            state.TotalSizeBytes = totalSize;
-            state.FilesRemaining = filesToCopy.Count;
-            state.SizeRemainingBytes = totalSize;
-            state.Timestamp = DateTime.UtcNow;
-            _stateWriter.WriteState(state);
-
-            int filesCopied = 0;
-            foreach (var file in filesToCopy)
-            {
-                // ── Stop ─────────────────────────────────────────────
-                reporter?.CancellationToken.ThrowIfCancellationRequested();
-
-                reporter?.ReportFile(file.FullName, filesToCopy.Count - filesCopied, filesToCopy.Count);
-
-                try
-                {
-                    ProcessFile(file, sourceDir, targetDir, job, encryptor);
-                    filesCopied++;
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine($"Erreur sur {file.FullName}: {ex.Message}");
-                }
-                finally
-                {
-                    int pct = filesToCopy.Count > 0
-                        ? (int)((filesCopied / (double)filesToCopy.Count) * 100)
-                        : 0;
-
-                    state.FilesRemaining = filesToCopy.Count - filesCopied;
-                    state.ProgressPct = pct;
-                    _stateWriter.WriteState(state);
-
-                    reporter?.ReportProgress(pct, state.FilesRemaining);
-                }
-
-                // ── Pause (APRÈS le fichier) ─────────────────────────
-                reporter?.WaitIfPaused();
-            }
-        }
-
-        // ══════════════════════════════════════════════════════════════
-        // HELPERS
-        // ══════════════════════════════════════════════════════════════
-
-        private CryptoSoftEncryptorAdapter BuildEncryptor(BackupJob job)
-        {
-            if (job.EnableEncryption && !string.IsNullOrEmpty(job.EncryptionKey))
-                return new CryptoSoftEncryptorAdapter(job.EncryptionKey, _logWriter, _settings);
-            return null;
+            return filesToCopy;
         }
 
         private void ProcessFile(
@@ -313,6 +487,12 @@ namespace EasySave.Core.Infrastructure
                 TransferTimeMs = (long)copyTime,
                 EncryptionTimeMs = encryptTime,
             });
+        }
+
+        void IBackupEngineWithProgress.Run(BackupJob job, IProgressReporter reporter)
+        {
+            throw new NotImplementedException();
+           // new FileSystemBackupEngine(_logWriter, _stateWriter, _settings, _detector, _largeFileSizeThreshold).Run(job, reporter); 
         }
     }
 }

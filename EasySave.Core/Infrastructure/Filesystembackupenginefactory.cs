@@ -14,18 +14,22 @@ namespace EasySave.Core.Infrastructure
         private readonly IStateWriter _stateWriter;
         private readonly AppSettings _settings;
         private readonly IBusinessSoftwareDetector _detector;
+        private readonly long thresholdKo;
 
         public FileSystemBackupEngineFactory(
             ILogWriter logWriter,
             IStateWriter stateWriter,
             AppSettings settings,
-            IBusinessSoftwareDetector detector)
+            IBusinessSoftwareDetector detector,
+            long thresholdKo)
         {
             _logWriter = logWriter;
             _stateWriter = stateWriter;
             _settings = settings;
             _detector = detector;
+            this.thresholdKo = thresholdKo;
         }
+
 
         /// <summary>
         /// Crée un nouveau moteur. Le reporter est passé au moment de Run(),
@@ -34,7 +38,7 @@ namespace EasySave.Core.Infrastructure
         public IBackupEngineWithProgress Create(IProgressReporter reporter)
         {
             // FileSystemBackupEngine implémente IBackupEngineWithProgress
-            return new FileSystemBackupEngine(_logWriter, _stateWriter, _settings, _detector);
+            return new FileSystemBackupEngine(_logWriter, _stateWriter, _settings, _detector, thresholdKo); 
         }
     }
 }
