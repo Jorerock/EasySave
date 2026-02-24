@@ -4,7 +4,6 @@ using EasySave.Core.Application;
 using EasySave.Core.Domain;
 using EasySave.Core.Infrastructure;
 using EasySave.WPF.Localization;
-
 using EasySave.WPF.ViewModels;
 using EasySave.WPF.Views;
 using System;
@@ -22,36 +21,53 @@ namespace EasySave.WPF
             string baseDir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "ProSoft", "EasySave");
             Directory.CreateDirectory(baseDir);
 
-            string configPath = Path.Combine(baseDir, "jobs.json");
+            string jobsPath = Path.Combine(baseDir, "jobs.json");
             string settingsPath = Path.Combine(baseDir, "settings.json");
             string logDir = Path.Combine(baseDir, "logs");
             string statePath = Path.Combine(baseDir, "state.json");
 
+            Directory.CreateDirectory(logDir);
+
             // Repositories
-            IJobRepository jobRepository = new JsonJobRepository(configPath);
+            IJobRepository jobRepository = new JsonJobRepository(jobsPath);
             ISettingsRepository settingsRepository = new JsonSettingsRepository(settingsPath);
 
-            // Writers
-            ILogWriter logWriter = new JsonLogWriter(logDir);
-            IStateWriter stateWriter = new JsonStateWriter(statePath);
-
-            // Managers
-            JobManager jobManager = new JobManager(jobRepository);
+            // Managers + Settings (IMPORTANT)
             SettingsManager settingsManager = new SettingsManager(settingsRepository);
             AppSettings appSettings = settingsManager.Get();
 
+            JobManager jobManager = new JobManager(jobRepository);
+
+            // Coordinator priorités
+            PriorityTransferCoordinator priorityCoordinator = new PriorityTransferCoordinator();
+
             // Detector
-            IBusinessSoftwareDetector detector = new ProcessBusinessSoftwareDetector();
+            IBusinessSoftwareDetector detector = new ProcessBusinessSoftwareDetector(appSettings);
 
-            // Engine (CLI / séquentiel)
-            IBackupEngine engine = new FileSystemBackupEngine(logWriter, stateWriter, appSettings, detector);
+            // Writers
+            ILogWriter logWriter = LogWriterFactory.Create(appSettings, logDir);
+            IStateWriter stateWriter = new JsonStateWriter(statePath);
 
-            // Orchestrateur séquentiel (héritage CLI)
+            // Engine + orchestrator "legacy" (pour base MainViewModel)
+            IBackupEngine engine = new FileSystemBackupEngine(
+                logWriter,
+                stateWriter,
+                appSettings,
+                detector,
+                priorityCoordinator
+            );
+
             BackupOrchestrator orchestrator = new BackupOrchestrator(jobRepository, engine);
 
-            // ── NOUVEAU : Orchestrateur parallèle ──────────────────────────
-            // Factory qui crée un moteur par job (chaque job a son propre reporter)
-            var engineFactory = new FileSystemBackupEngineFactory(logWriter, stateWriter, appSettings, detector);
+            // Parallèle v3
+            var engineFactory = new FileSystemBackupEngineFactory(
+                logWriter,
+                stateWriter,
+                appSettings,
+                detector,
+                priorityCoordinator
+            );
+
             var parallelOrchestrator = new ParallelBackupOrchestrator(engineFactory);
 
             // Langue
@@ -60,6 +76,7 @@ namespace EasySave.WPF
             else
                 LocalizationManager.SetCulture("en-US");
 
+            // VM
             WpfMainViewModel viewModel = new WpfMainViewModel(
                 jobManager,
                 orchestrator,
@@ -67,11 +84,10 @@ namespace EasySave.WPF
                 parallelOrchestrator
             );
 
-            // MainWindow
+            // UI
             MainWindow mainWindow = new MainWindow();
             mainWindow.DataContext = viewModel;
             mainWindow.Show();
-
         }
     }
 }
