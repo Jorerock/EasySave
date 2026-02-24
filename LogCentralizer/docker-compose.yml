@@ -1,0 +1,7 @@
+﻿services:
+  logcentralizer:
+    build: .
+    ports:
+      - "5080:5080"
+    volumes:
+      - ./central_logs:/app/logs
