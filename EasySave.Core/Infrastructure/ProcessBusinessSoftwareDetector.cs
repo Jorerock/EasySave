@@ -1,19 +1,56 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
+﻿using EasySave.Core.Domain;
+using System;
 using System.Diagnostics;
-using System.Text;
+using System.IO;
+using System.Linq;
 
 namespace EasySave.Core.Infrastructure
 {
     public class ProcessBusinessSoftwareDetector : IBusinessSoftwareDetector
     {
-        private readonly string _processPath; // Ou une liste issue des AppSettings
+        private readonly AppSettings _settings;
+
+        public ProcessBusinessSoftwareDetector(AppSettings settings)
+        {
+            _settings = settings ?? throw new ArgumentNullException(nameof(settings));
+        }
 
         public bool IsBlocked()
         {
-            // Logique : vérifier si l'un des processus définis dans les paramètres est actif
-            return Process.GetProcesses().Any(p => p.ProcessName.Contains("LogicielMetier"));
+            // Tu peux stocker dans settings soit un "nom de process" (ex: "calc"),
+            // soit un chemin (ex: "C:\Windows\System32\calc.exe").
+            var value = _settings.BusinessSoftwarePath;
+
+            if (string.IsNullOrWhiteSpace(value))
+                return false;
+
+            // Si l'utilisateur a mis un chemin complet, on récupère le nom du process
+            // ex: calc.exe => calc
+            string processName = value;
+
+            try
+            {
+                if (value.Contains(Path.DirectorySeparatorChar) || value.Contains(Path.AltDirectorySeparatorChar))
+                {
+                    processName = Path.GetFileNameWithoutExtension(value);
+                }
+                else
+                {
+                    processName = Path.GetFileNameWithoutExtension(value); // gère "calc.exe" ou "calc"
+                }
+            }
+            catch
+            {
+                processName = value;
+            }
+
+            processName = processName.Trim();
+
+            if (string.IsNullOrWhiteSpace(processName))
+                return false;
+
+            // Détection "exacte" du process
+            return Process.GetProcessesByName(processName).Any();
         }
     }
 }

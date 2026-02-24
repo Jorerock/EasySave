@@ -4,7 +4,8 @@
         xmlns:sys="clr-namespace:System;assembly=mscorlib"
         xmlns:domain="clr-namespace:EasySave.Core.Domain;assembly=EasySave.Core"
         Title="{DynamicResource Settings_Title}"
-        Height="686" Width="550"
+        MinHeight="520" MinWidth="420"
+        SizeToContent="Manual"
         WindowStartupLocation="CenterOwner">
 
     <Window.Resources>
@@ -15,72 +16,148 @@
                 <x:Type TypeName="domain:AppLanguage"/>
             </ObjectDataProvider.MethodParameters>
         </ObjectDataProvider>
+
+        <!-- petits styles pour rendre joli + responsive -->
+        <Style x:Key="SectionTitle" TargetType="TextBlock">
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="FontFamily" Value="Cascadia Mono"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="Margin" Value="0,0,0,6"/>
+        </Style>
+
+        <Style x:Key="HintText" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="Foreground" Value="Gray"/>
+            <Setter Property="Margin" Value="0,0,0,6"/>
+        </Style>
+
+        <Style x:Key="InputBox" TargetType="Control">
+            <Setter Property="Margin" Value="0,0,0,10"/>
+            <Setter Property="HorizontalAlignment" Value="Stretch"/>
+        </Style>
     </Window.Resources>
 
-    <Grid Margin="20">
-        <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="*"/>
-            <RowDefinition Height="Auto"/>
-        </Grid.RowDefinitions>
+    <!-- Scroll = indispensable pour petites fenêtres -->
+    <DockPanel LastChildFill="True" Margin="16">
 
-        <!-- Extensions To Encrypt -->
-        <StackPanel Grid.Row="0" Margin="0,5">
-            <TextBlock FontWeight="Bold" FontFamily="Cascadia Mono" FontSize="13"
-                       Text="{DynamicResource Settings_ExtensionsToEncrypt}"/>
-            <CheckBox x:Name="TxtCheckBox" Content=".txt" Margin="0,5"/>
-            <CheckBox x:Name="CsvCheckBox" Content=".csv" Margin="0,2"/>
-            <CheckBox x:Name="PngCheckBox" Content=".png" Margin="0,2"/>
-            <CheckBox x:Name="JpgCheckBox" Content=".jpg" Margin="0,2"/>
-            <CheckBox x:Name="DocxCheckBox" Content=".docx" Margin="0,2"/>
-            <CheckBox x:Name="PdfCheckBox" Content=".pdf" Margin="0,2"/>
-        </StackPanel>
-
-        <!-- Business Software Path -->
-        <StackPanel Grid.Row="1" Margin="0,5">
-            <TextBlock FontWeight="Bold" FontFamily="Cascadia Mono" FontSize="13"
-                       Text="{DynamicResource Settings_BusinessSoftwarePath}"/>
-            <TextBlock Text="{DynamicResource Settings_BusinessSoftwareHint}"
-                       FontSize="11" Foreground="Gray" Margin="0,2"/>
-            <TextBox x:Name="SourceTextBox"
-                     Margin="0,5"
-                     Height="30"
-                     ToolTip="{DynamicResource Settings_BusinessSoftwareTooltip}"/>
-        </StackPanel>
-
-        <!-- Language -->
-        <StackPanel Grid.Row="3" Margin="0,5">
-            <TextBlock FontWeight="Bold" FontFamily="Cascadia Mono" FontSize="13"
-                       Text="{DynamicResource Settings_Language}"/>
-            <ComboBox x:Name="LanguageComboBox"
-                      Margin="0,5" Height="30"
-                      ItemsSource="{Binding Source={StaticResource LanguageEnumValues}}"/>
-        </StackPanel>
-
-        <!-- Log Format -->
-        <StackPanel Grid.Row="5" Margin="0,5">
-            <TextBlock FontWeight="Bold" FontFamily="Cascadia Mono" FontSize="13"
-                       Text="{DynamicResource Settings_LogFormat}"/>
-            <ComboBox x:Name="LogFormatComboBox" Margin="0,5" Height="30">
-                <ComboBoxItem Content="JSON" IsSelected="True"/>
-                <ComboBoxItem Content="XML"/>
-            </ComboBox>
-        </StackPanel>
-
-        <!-- Buttons -->
-        <StackPanel Grid.Row="6" Orientation="Horizontal"
-                    HorizontalAlignment="Right" Margin="0,20,0,0">
+        <!-- Boutons en bas, qui restent visibles -->
+        <StackPanel DockPanel.Dock="Bottom"
+                    Orientation="Horizontal"
+                    HorizontalAlignment="Right"
+                    Margin="0,14,0,0">
             <Button Content="{DynamicResource Common_Save}"
-                    Width="100" Height="35"
-                    Margin="0,0,10,0" Click="Save_Click"
-                    Background="#4CAF50" Foreground="White"/>
+                    Width="110" Height="36"
+                    Margin="0,0,10,0"
+                    Click="Save_Click"
+                    Background="#4CAF50"
+                    Foreground="White"/>
             <Button Content="{DynamicResource Common_Cancel}"
-                    Width="100" Height="35"
+                    Width="110" Height="36"
                     Click="Cancel_Click"/>
         </StackPanel>
-    </Grid>
+
+        <ScrollViewer VerticalScrollBarVisibility="Auto"
+                      HorizontalScrollBarVisibility="Disabled">
+
+            <!-- Layout responsive : 2 colonnes qui s’adaptent -->
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <!-- Colonne 1 : listes (checkbox) -->
+                    <ColumnDefinition Width="*" MinWidth="180"/>
+                    <!-- Colonne 2 : champs (textbox/combobox) -->
+                    <ColumnDefinition Width="2*" MinWidth="220"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- Sur petit écran, on empile en 1 colonne -->
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+
+                <!-- ========== COLONNE GAUCHE : listes ========== -->
+                <StackPanel Grid.Column="0" Grid.Row="0" Margin="0,0,16,0">
+
+                    <!-- Extensions To Encrypt -->
+                    <TextBlock Style="{StaticResource SectionTitle}"
+                               Text="{DynamicResource Settings_ExtensionsToEncrypt}"/>
+                    <UniformGrid Columns="2">
+                        <CheckBox x:Name="TxtCheckBox" Content=".txt" Margin="0,2"/>
+                        <CheckBox x:Name="CsvCheckBox" Content=".csv" Margin="0,2"/>
+                        <CheckBox x:Name="PngCheckBox" Content=".png" Margin="0,2"/>
+                        <CheckBox x:Name="JpgCheckBox" Content=".jpg" Margin="0,2"/>
+                        <CheckBox x:Name="DocxCheckBox" Content=".docx" Margin="0,2"/>
+                        <CheckBox x:Name="PdfCheckBox" Content=".pdf" Margin="0,2"/>
+                    </UniformGrid>
+
+                    <Separator Margin="0,14,0,14"/>
+
+                    <!-- Priority Extensions -->
+                    <TextBlock Style="{StaticResource SectionTitle}"
+                               Text="{DynamicResource Settings_PriorityExtensions}"/>
+                    <TextBlock Style="{StaticResource HintText}"
+                               Text="{DynamicResource Settings_PriorityExtensionsHint}"/>
+                    <UniformGrid Columns="2">
+                        <CheckBox x:Name="PriorityPdfCheckBox" Content=".pdf" Margin="0,2"/>
+                        <CheckBox x:Name="PriorityDocxCheckBox" Content=".docx" Margin="0,2"/>
+                        <CheckBox x:Name="PriorityTxtCheckBox" Content=".txt" Margin="0,2"/>
+                    </UniformGrid>
+                </StackPanel>
+
+                <!-- ========== COLONNE DROITE : champs ========== -->
+                <StackPanel Grid.Column="1" Grid.Row="0">
+
+                    <!-- Business Software Path -->
+                    <TextBlock Style="{StaticResource SectionTitle}"
+                               Text="{DynamicResource Settings_BusinessSoftwarePath}"/>
+                    <TextBlock Style="{StaticResource HintText}"
+                               Text="{DynamicResource Settings_BusinessSoftwareHint}"/>
+                    <TextBox x:Name="SourceTextBox"
+                             Style="{StaticResource InputBox}"
+                             MinHeight="30"
+                             ToolTip="{DynamicResource Settings_BusinessSoftwareTooltip}"/>
+
+                    <!-- Language -->
+                    <TextBlock Style="{StaticResource SectionTitle}"
+                               Text="{DynamicResource Settings_Language}"/>
+                    <ComboBox x:Name="LanguageComboBox"
+                              Style="{StaticResource InputBox}"
+                              MinHeight="30"
+                              ItemsSource="{Binding Source={StaticResource LanguageEnumValues}}"/>
+
+                    <!-- Log Format -->
+                    <TextBlock Style="{StaticResource SectionTitle}"
+                               Text="{DynamicResource Settings_LogFormat}"/>
+                    <ComboBox x:Name="LogFormatComboBox"
+                              Style="{StaticResource InputBox}"
+                              MinHeight="30">
+                        <ComboBoxItem Content="JSON" IsSelected="True"/>
+                        <ComboBoxItem Content="XML"/>
+                    </ComboBox>
+
+                    <!-- Log Mode -->
+                    <TextBlock Style="{StaticResource SectionTitle}"
+                               Text="{DynamicResource Settings_LogMode}"/>
+                    <ComboBox x:Name="LogModeComboBox"
+                              Style="{StaticResource InputBox}"
+                              MinHeight="30">
+                        <ComboBoxItem Content="{DynamicResource Settings_LogMode_Local}" Tag="local" IsSelected="True"/>
+                        <ComboBoxItem Content="{DynamicResource Settings_LogMode_Central}" Tag="central"/>
+                        <ComboBoxItem Content="{DynamicResource Settings_LogMode_Both}" Tag="both"/>
+                    </ComboBox>
+
+                    <!-- Central URL -->
+                    <TextBlock Style="{StaticResource SectionTitle}"
+                               Text="{DynamicResource Settings_CentralLogUrl}"/>
+                    <TextBlock Style="{StaticResource HintText}"
+                               Text="{DynamicResource Settings_CentralLogUrlHint}"/>
+                    <TextBox x:Name="CentralUrlTextBox"
+                             Style="{StaticResource InputBox}"
+                             MinHeight="30"/>
+                </StackPanel>
+
+            </Grid>
+        </ScrollViewer>
+    </DockPanel>
 </Window>

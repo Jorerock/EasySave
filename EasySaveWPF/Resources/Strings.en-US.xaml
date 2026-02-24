@@ -61,5 +61,15 @@
     <sys:String x:Key="CreateJob_EncryptionKey">Encryption Key:</sys:String>
     <sys:String x:Key="CreateJob_ExtensionsToEncrypt">Extensions to Encrypt:</sys:String>
     <sys:String x:Key="CreateJob_ExtensionsHint">(e.g., .docx .pdf .txt - leave empty for all files)</sys:String>
+    <sys:String x:Key="Settings_LogMode">Log mode</sys:String>
+    <sys:String x:Key="Settings_LogMode_Local">Local</sys:String>
+    <sys:String x:Key="Settings_LogMode_Central">Central (Docker)</sys:String>
+    <sys:String x:Key="Settings_LogMode_Both">Local + Central</sys:String>
+
+    <sys:String x:Key="Settings_CentralLogUrl">Central log URL</sys:String>
+    <sys:String x:Key="Settings_CentralLogUrlHint">(example: http://localhost:5080)</sys:String>
+
+    <sys:String x:Key="Settings_PriorityExtensions">Priority extensions</sys:String>
+    <sys:String x:Key="Settings_PriorityExtensionsHint">(Non-priority files wait while priority files exist)</sys:String>
 
 </ResourceDictionary>

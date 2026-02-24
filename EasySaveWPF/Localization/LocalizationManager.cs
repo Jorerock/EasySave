@@ -29,14 +29,7 @@ namespace EasySave.WPF.Localization
 
             // ✅ On récupère automatiquement le nom de l'assembly WPF (le nom du projet)
             Assembly entryAssembly = Assembly.GetEntryAssembly();
-            string assemblyName = entryAssembly != null ? entryAssembly.GetName().Name : null;
-
-            // Si l'assembly est null (rare), on tente avec l'assembly qui contient App
-            if (string.IsNullOrWhiteSpace(assemblyName))
-            {
-                Assembly appAssembly = typeof(Application).Assembly;
-                assemblyName = appAssembly.GetName().Name;
-            }
+            string assemblyName = entryAssembly != null ? entryAssembly.GetName().Name : "EasySave.WPF";
 
             // pack URI correct sans hardcoder "EasySave.WPF"
             string uriString = "pack://application:,,,/" + assemblyName + ";component/" + DictPrefix + cultureName + ".xaml";
@@ -47,6 +40,7 @@ namespace EasySave.WPF.Localization
 
             Collection<ResourceDictionary> merged = Application.Current.Resources.MergedDictionaries;
 
+            // Supprime les anciens dictionnaires Strings.*
             List<ResourceDictionary> oldDicts = merged
                 .Where(d => d.Source != null &&
                             d.Source.OriginalString.IndexOf(DictPrefix, StringComparison.OrdinalIgnoreCase) >= 0)

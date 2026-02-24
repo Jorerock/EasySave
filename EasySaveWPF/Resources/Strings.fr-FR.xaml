@@ -62,4 +62,15 @@
     <sys:String x:Key="CreateJob_ExtensionsToEncrypt">Extensions à chiffrer :</sys:String>
     <sys:String x:Key="CreateJob_ExtensionsHint">(ex : .docx .pdf .txt - vide = tous les fichiers)</sys:String>
 
+    <sys:String x:Key="Settings_LogMode">Mode des logs</sys:String>
+    <sys:String x:Key="Settings_LogMode_Local">Local</sys:String>
+    <sys:String x:Key="Settings_LogMode_Central">Centralisé (Docker)</sys:String>
+    <sys:String x:Key="Settings_LogMode_Both">Local + Centralisé</sys:String>
+
+    <sys:String x:Key="Settings_CentralLogUrl">URL des logs centralisés</sys:String>
+    <sys:String x:Key="Settings_CentralLogUrlHint">(exemple : http://localhost:5080)</sys:String>
+
+    <sys:String x:Key="Settings_PriorityExtensions">Extensions prioritaires</sys:String>
+    <sys:String x:Key="Settings_PriorityExtensionsHint">(Les fichiers non prioritaires attendent tant qu'il reste des prioritaires)</sys:String>
+
 </ResourceDictionary>
