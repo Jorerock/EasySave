@@ -4,160 +4,198 @@
         xmlns:sys="clr-namespace:System;assembly=mscorlib"
         xmlns:domain="clr-namespace:EasySave.Core.Domain;assembly=EasySave.Core"
         Title="{DynamicResource Settings_Title}"
-        MinHeight="520" MinWidth="420"
-        SizeToContent="Manual"
-        WindowStartupLocation="CenterOwner">
+        MinHeight="600" MinWidth="500" Width="600" Height="750"
+        WindowStartupLocation="CenterOwner"
+        Background="{DynamicResource BackgroundBrush}">
 
     <Window.Resources>
-        <ObjectDataProvider x:Key="LanguageEnumValues"
-                            MethodName="GetValues"
-                            ObjectType="{x:Type sys:Enum}">
-            <ObjectDataProvider.MethodParameters>
-                <x:Type TypeName="domain:AppLanguage"/>
-            </ObjectDataProvider.MethodParameters>
-        </ObjectDataProvider>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <!-- OK : dictionnaire thème -->
+                <ResourceDictionary Source="/EasySaveWPF;component/Theme/Theme.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
 
-        <!-- petits styles pour rendre joli + responsive -->
-        <Style x:Key="SectionTitle" TargetType="TextBlock">
-            <Setter Property="FontWeight" Value="Bold"/>
-            <Setter Property="FontFamily" Value="Cascadia Mono"/>
-            <Setter Property="FontSize" Value="13"/>
-            <Setter Property="Margin" Value="0,0,0,6"/>
-        </Style>
+            <ObjectDataProvider x:Key="LanguageEnumValues"
+                                MethodName="GetValues"
+                                ObjectType="{x:Type sys:Enum}">
+                <ObjectDataProvider.MethodParameters>
+                    <x:Type TypeName="domain:AppLanguage"/>
+                </ObjectDataProvider.MethodParameters>
+            </ObjectDataProvider>
 
-        <Style x:Key="HintText" TargetType="TextBlock">
-            <Setter Property="FontSize" Value="11"/>
-            <Setter Property="Foreground" Value="Gray"/>
-            <Setter Property="Margin" Value="0,0,0,6"/>
-        </Style>
+            <!-- Style Checkbox Moderne -->
+            <Style x:Key="ModernCheckBox" TargetType="CheckBox">
+                <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
+                <Setter Property="Margin" Value="0,4,16,4"/>
+                <Setter Property="FontSize" Value="14"/>
+            </Style>
 
-        <Style x:Key="InputBox" TargetType="Control">
-            <Setter Property="Margin" Value="0,0,0,10"/>
-            <Setter Property="HorizontalAlignment" Value="Stretch"/>
-        </Style>
+            <!-- ✅ NOUVEAU : Style ComboBox Moderne (évite le crash) -->
+            <Style x:Key="ModernComboBox" TargetType="ComboBox">
+                <Setter Property="Background" Value="{StaticResource SurfaceBrush}"/>
+                <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
+                <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}"/>
+                <Setter Property="BorderThickness" Value="1"/>
+                <Setter Property="Padding" Value="10,6"/>
+                <Setter Property="MinHeight" Value="34"/>
+                <Setter Property="VerticalContentAlignment" Value="Center"/>
+            </Style>
+
+            <Style x:Key="FieldLabel" TargetType="TextBlock">
+                <Setter Property="FontWeight" Value="SemiBold"/>
+                <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
+                <Setter Property="Margin" Value="0,0,0,4"/>
+            </Style>
+
+            <Style x:Key="FieldHint" TargetType="TextBlock">
+                <Setter Property="FontSize" Value="11"/>
+                <Setter Property="Foreground" Value="{StaticResource SecondaryTextBrush}"/>
+                <Setter Property="Margin" Value="0,0,0,8"/>
+            </Style>
+        </ResourceDictionary>
     </Window.Resources>
 
-    <!-- Scroll = indispensable pour petites fenêtres -->
-    <DockPanel LastChildFill="True" Margin="16">
+    <DockPanel LastChildFill="True">
 
-        <!-- Boutons en bas, qui restent visibles -->
-        <StackPanel DockPanel.Dock="Bottom"
-                    Orientation="Horizontal"
-                    HorizontalAlignment="Right"
-                    Margin="0,14,0,0">
-            <Button Content="{DynamicResource Common_Save}"
-                    Width="110" Height="36"
-                    Margin="0,0,10,0"
-                    Click="Save_Click"
-                    Background="#4CAF50"
-                    Foreground="White"/>
-            <Button Content="{DynamicResource Common_Cancel}"
-                    Width="110" Height="36"
-                    Click="Cancel_Click"/>
-        </StackPanel>
+        <!-- Header -->
+        <Border DockPanel.Dock="Top"
+                Background="{StaticResource SurfaceBrush}"
+                Padding="24,16"
+                BorderBrush="{StaticResource BorderBrush}"
+                BorderThickness="0,0,0,1">
+            <StackPanel Orientation="Horizontal">
+                <TextBlock FontFamily="{StaticResource IconFont}"
+                           Text="&#xE713;"
+                           FontSize="20"
+                           Foreground="{StaticResource PrimaryBrush}"
+                           Margin="0,0,12,0"
+                           VerticalAlignment="Center"/>
+                <TextBlock Text="{DynamicResource Settings_Title}"
+                           FontSize="18"
+                           FontWeight="SemiBold"
+                           Foreground="{StaticResource TextBrush}"/>
+            </StackPanel>
+        </Border>
 
-        <ScrollViewer VerticalScrollBarVisibility="Auto"
-                      HorizontalScrollBarVisibility="Disabled">
+        <!-- Boutons Actions -->
+        <Border DockPanel.Dock="Bottom"
+                Background="{StaticResource SurfaceBrush}"
+                Padding="24,16"
+                BorderBrush="{StaticResource BorderBrush}"
+                BorderThickness="0,1,0,0">
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                <Button Content="{DynamicResource Common_Cancel}"
+                        Width="100"
+                        Click="Cancel_Click"
+                        Style="{StaticResource ModernButton}"
+                        Margin="0,0,12,0"/>
+                <Button Content="{DynamicResource Common_Save}"
+                        Width="120"
+                        Click="Save_Click"
+                        Style="{StaticResource PrimaryButton}"/>
+            </StackPanel>
+        </Border>
 
-            <!-- Layout responsive : 2 colonnes qui s’adaptent -->
-            <Grid>
-                <Grid.ColumnDefinitions>
-                    <!-- Colonne 1 : listes (checkbox) -->
-                    <ColumnDefinition Width="*" MinWidth="180"/>
-                    <!-- Colonne 2 : champs (textbox/combobox) -->
-                    <ColumnDefinition Width="2*" MinWidth="220"/>
-                </Grid.ColumnDefinitions>
+        <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="24">
+            <StackPanel>
 
-                <!-- Sur petit écran, on empile en 1 colonne -->
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="Auto"/>
-                </Grid.RowDefinitions>
+                <!-- Section Application -->
+                <TextBlock Text="{DynamicResource Settings_Section_App}"
+                           Style="{StaticResource CardTitle}"
+                           Margin="4,0,0,8"/>
+                <Border Style="{StaticResource ModernCard}">
+                    <StackPanel>
+                        <!-- Langue -->
+                        <TextBlock Style="{StaticResource FieldLabel}"
+                                   Text="{DynamicResource Settings_Language}"/>
+                        <!-- ✅ FIX : ComboBox = ModernComboBox -->
+                        <ComboBox x:Name="LanguageComboBox"
+                                  Style="{StaticResource ModernComboBox}"
+                                  Margin="0,0,0,16"
+                                  ItemsSource="{Binding Source={StaticResource LanguageEnumValues}}"/>
 
-                <!-- ========== COLONNE GAUCHE : listes ========== -->
-                <StackPanel Grid.Column="0" Grid.Row="0" Margin="0,0,16,0">
+                        <!-- Logiciel métier -->
+                        <TextBlock Style="{StaticResource FieldLabel}"
+                                   Text="{DynamicResource Settings_BusinessSoftwarePath}"/>
+                        <TextBlock Style="{StaticResource FieldHint}"
+                                   Text="{DynamicResource Settings_BusinessSoftwareHint}"/>
+                        <TextBox x:Name="SourceTextBox"
+                                 Style="{StaticResource ModernTextBox}"
+                                 ToolTip="{DynamicResource Settings_BusinessSoftwareTooltip}"/>
+                    </StackPanel>
+                </Border>
 
-                    <!-- Extensions To Encrypt -->
-                    <TextBlock Style="{StaticResource SectionTitle}"
-                               Text="{DynamicResource Settings_ExtensionsToEncrypt}"/>
-                    <UniformGrid Columns="2">
-                        <CheckBox x:Name="TxtCheckBox" Content=".txt" Margin="0,2"/>
-                        <CheckBox x:Name="CsvCheckBox" Content=".csv" Margin="0,2"/>
-                        <CheckBox x:Name="PngCheckBox" Content=".png" Margin="0,2"/>
-                        <CheckBox x:Name="JpgCheckBox" Content=".jpg" Margin="0,2"/>
-                        <CheckBox x:Name="DocxCheckBox" Content=".docx" Margin="0,2"/>
-                        <CheckBox x:Name="PdfCheckBox" Content=".pdf" Margin="0,2"/>
-                    </UniformGrid>
+                <!-- Section Extensions -->
+                <TextBlock Text="{DynamicResource Settings_Section_Extensions}"
+                           Style="{StaticResource CardTitle}"
+                           Margin="4,0,0,8"/>
+                <Border Style="{StaticResource ModernCard}">
+                    <StackPanel>
+                        <TextBlock Style="{StaticResource FieldLabel}"
+                                   Text="{DynamicResource Settings_ExtensionsToEncrypt}"/>
+                        <WrapPanel Margin="0,0,0,16">
+                            <CheckBox x:Name="TxtCheckBox" Content=".txt" Style="{StaticResource ModernCheckBox}"/>
+                            <CheckBox x:Name="CsvCheckBox" Content=".csv" Style="{StaticResource ModernCheckBox}"/>
+                            <CheckBox x:Name="PngCheckBox" Content=".png" Style="{StaticResource ModernCheckBox}"/>
+                            <CheckBox x:Name="JpgCheckBox" Content=".jpg" Style="{StaticResource ModernCheckBox}"/>
+                            <CheckBox x:Name="DocxCheckBox" Content=".docx" Style="{StaticResource ModernCheckBox}"/>
+                            <CheckBox x:Name="PdfCheckBox" Content=".pdf" Style="{StaticResource ModernCheckBox}"/>
+                        </WrapPanel>
 
-                    <Separator Margin="0,14,0,14"/>
+                        <Separator Background="{StaticResource BorderBrush}" Margin="0,0,0,16"/>
 
-                    <!-- Priority Extensions -->
-                    <TextBlock Style="{StaticResource SectionTitle}"
-                               Text="{DynamicResource Settings_PriorityExtensions}"/>
-                    <TextBlock Style="{StaticResource HintText}"
-                               Text="{DynamicResource Settings_PriorityExtensionsHint}"/>
-                    <UniformGrid Columns="2">
-                        <CheckBox x:Name="PriorityPdfCheckBox" Content=".pdf" Margin="0,2"/>
-                        <CheckBox x:Name="PriorityDocxCheckBox" Content=".docx" Margin="0,2"/>
-                        <CheckBox x:Name="PriorityTxtCheckBox" Content=".txt" Margin="0,2"/>
-                    </UniformGrid>
-                </StackPanel>
+                        <TextBlock Style="{StaticResource FieldLabel}"
+                                   Text="{DynamicResource Settings_PriorityExtensions}"/>
+                        <TextBlock Style="{StaticResource FieldHint}"
+                                   Text="{DynamicResource Settings_PriorityExtensionsHint}"/>
+                        <WrapPanel>
+                            <CheckBox x:Name="PriorityPdfCheckBox" Content=".pdf" Style="{StaticResource ModernCheckBox}"/>
+                            <CheckBox x:Name="PriorityDocxCheckBox" Content=".docx" Style="{StaticResource ModernCheckBox}"/>
+                            <CheckBox x:Name="PriorityTxtCheckBox" Content=".txt" Style="{StaticResource ModernCheckBox}"/>
+                        </WrapPanel>
+                    </StackPanel>
+                </Border>
 
-                <!-- ========== COLONNE DROITE : champs ========== -->
-                <StackPanel Grid.Column="1" Grid.Row="0">
+                <!-- Section Logs -->
+                <TextBlock Text="{DynamicResource Settings_Section_Logs}"
+                           Style="{StaticResource CardTitle}"
+                           Margin="4,0,0,8"/>
+                <Border Style="{StaticResource ModernCard}">
+                    <StackPanel>
+                        <!-- Format -->
+                        <TextBlock Style="{StaticResource FieldLabel}"
+                                   Text="{DynamicResource Settings_LogFormat}"/>
+                        <!-- ✅ FIX : ComboBox = ModernComboBox -->
+                        <ComboBox x:Name="LogFormatComboBox"
+                                  Style="{StaticResource ModernComboBox}"
+                                  Margin="0,0,0,16">
+                            <ComboBoxItem Content="JSON" IsSelected="True"/>
+                            <ComboBoxItem Content="XML"/>
+                        </ComboBox>
 
-                    <!-- Business Software Path -->
-                    <TextBlock Style="{StaticResource SectionTitle}"
-                               Text="{DynamicResource Settings_BusinessSoftwarePath}"/>
-                    <TextBlock Style="{StaticResource HintText}"
-                               Text="{DynamicResource Settings_BusinessSoftwareHint}"/>
-                    <TextBox x:Name="SourceTextBox"
-                             Style="{StaticResource InputBox}"
-                             MinHeight="30"
-                             ToolTip="{DynamicResource Settings_BusinessSoftwareTooltip}"/>
+                        <!-- Mode -->
+                        <TextBlock Style="{StaticResource FieldLabel}"
+                                   Text="{DynamicResource Settings_LogMode}"/>
+                        <!-- ✅ FIX : ComboBox = ModernComboBox -->
+                        <ComboBox x:Name="LogModeComboBox"
+                                  Style="{StaticResource ModernComboBox}"
+                                  Margin="0,0,0,16">
+                            <ComboBoxItem Content="{DynamicResource Settings_LogMode_Local}" Tag="local" IsSelected="True"/>
+                            <ComboBoxItem Content="{DynamicResource Settings_LogMode_Central}" Tag="central"/>
+                            <ComboBoxItem Content="{DynamicResource Settings_LogMode_Both}" Tag="both"/>
+                        </ComboBox>
 
-                    <!-- Language -->
-                    <TextBlock Style="{StaticResource SectionTitle}"
-                               Text="{DynamicResource Settings_Language}"/>
-                    <ComboBox x:Name="LanguageComboBox"
-                              Style="{StaticResource InputBox}"
-                              MinHeight="30"
-                              ItemsSource="{Binding Source={StaticResource LanguageEnumValues}}"/>
+                        <!-- Central URL -->
+                        <TextBlock Style="{StaticResource FieldLabel}"
+                                   Text="{DynamicResource Settings_CentralLogUrl}"/>
+                        <TextBlock Style="{StaticResource FieldHint}"
+                                   Text="{DynamicResource Settings_CentralLogUrlHint}"/>
+                        <TextBox x:Name="CentralUrlTextBox"
+                                 Style="{StaticResource ModernTextBox}"/>
+                    </StackPanel>
+                </Border>
 
-                    <!-- Log Format -->
-                    <TextBlock Style="{StaticResource SectionTitle}"
-                               Text="{DynamicResource Settings_LogFormat}"/>
-                    <ComboBox x:Name="LogFormatComboBox"
-                              Style="{StaticResource InputBox}"
-                              MinHeight="30">
-                        <ComboBoxItem Content="JSON" IsSelected="True"/>
-                        <ComboBoxItem Content="XML"/>
-                    </ComboBox>
-
-                    <!-- Log Mode -->
-                    <TextBlock Style="{StaticResource SectionTitle}"
-                               Text="{DynamicResource Settings_LogMode}"/>
-                    <ComboBox x:Name="LogModeComboBox"
-                              Style="{StaticResource InputBox}"
-                              MinHeight="30">
-                        <ComboBoxItem Content="{DynamicResource Settings_LogMode_Local}" Tag="local" IsSelected="True"/>
-                        <ComboBoxItem Content="{DynamicResource Settings_LogMode_Central}" Tag="central"/>
-                        <ComboBoxItem Content="{DynamicResource Settings_LogMode_Both}" Tag="both"/>
-                    </ComboBox>
-
-                    <!-- Central URL -->
-                    <TextBlock Style="{StaticResource SectionTitle}"
-                               Text="{DynamicResource Settings_CentralLogUrl}"/>
-                    <TextBlock Style="{StaticResource HintText}"
-                               Text="{DynamicResource Settings_CentralLogUrlHint}"/>
-                    <TextBox x:Name="CentralUrlTextBox"
-                             Style="{StaticResource InputBox}"
-                             MinHeight="30"/>
-                </StackPanel>
-
-            </Grid>
+            </StackPanel>
         </ScrollViewer>
     </DockPanel>
 </Window>
