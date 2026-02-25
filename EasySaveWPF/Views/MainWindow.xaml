@@ -178,9 +178,9 @@
                 </StackPanel>
 
                 <Button DockPanel.Dock="Right" Style="{StaticResource ModernButton}" Click="AppSettings_Click" HorizontalAlignment="Right" Padding="12,6">
-                    <StackPanel Orientation="Horizontal" Height="24" Width="95">
-                        <TextBlock FontFamily="{StaticResource IconFont}" Text="&#xE713;" Margin="0,0,8,0" VerticalAlignment="Center" Width="12" RenderTransformOrigin="1.425,0.553"/>
-                        <TextBlock Text="{DynamicResource Btn_Settings}" VerticalAlignment="Center" RenderTransformOrigin="0.479,-0.061"/>
+                    <StackPanel Orientation="Horizontal" Height="24" Width="103">
+                        <TextBlock FontFamily="{StaticResource IconFont}" Text="&#xE713;" Margin="8,0,8,0" VerticalAlignment="Center" Width="12" RenderTransformOrigin="1.425,0.553"/>
+                        <TextBlock Text="{DynamicResource Btn_Settings}" VerticalAlignment="Center" RenderTransformOrigin="0.479,-0.061" Margin="0,0,8,0"/>
                     </StackPanel>
                 </Button>
             </DockPanel>
@@ -218,7 +218,7 @@
                             <TextBlock DockPanel.Dock="Left" Text="{DynamicResource Jobs_Header}" Style="{StaticResource CardTitle}" Margin="0"/>
 
                             <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" HorizontalAlignment="Right">
-                                <Button Content="{DynamicResource Btn_RunSelected}" Command="{Binding RunJobCommand}" Style="{StaticResource ModernButton}" Margin="0,0,8,0" Height="22" Width="95"/>
+                                <Button Content="{DynamicResource Btn_RunSelected}" Command="{Binding RunJobCommand}" Style="{StaticResource ModernButton}" Margin="0,0,8,0" Height="22" Width="124"/>
                                 <Button Content="{DynamicResource Btn_Delete}" Command="{Binding DeleteJobCommand}" Style="{StaticResource DangerButton}" Height="26" Width="105" Click="Button_Click">
                                     <Button.ContentTemplate>
                                         <DataTemplate>
