@@ -26,18 +26,20 @@ namespace EasySave.Core.Infrastructure
         // Sémaphore pour limiter le parallélisme des gros fichiers
         // On l'initialise à 1 pour forcer le mode séquentiel sur les gros fichiers
         private static readonly SemaphoreSlim _largeFileSemaphore = new SemaphoreSlim(1, 1);
+        private readonly PriorityTransferCoordinator _priorityCoordinator;
 
         public FileSystemBackupEngine(
             ILogWriter logWriter,
             IStateWriter stateWriter,
             AppSettings settings,
-            IBusinessSoftwareDetector detector , long thresholdKo)
+            IBusinessSoftwareDetector detector,
+            PriorityTransferCoordinator priorityCoordinator)
         {
             _logWriter = logWriter ?? throw new ArgumentNullException(nameof(logWriter));
             _stateWriter = stateWriter ?? throw new ArgumentNullException(nameof(stateWriter));
             _settings = settings ?? throw new ArgumentNullException(nameof(settings));
             _detector = detector ?? throw new ArgumentNullException(nameof(detector));
-            _largeFileSizeThreshold = thresholdKo * 1024 ; // Conversion Ko vers Octets
+            _priorityCoordinator = priorityCoordinator ?? throw new ArgumentNullException(nameof(priorityCoordinator));
         }
 
         // ── IBackupEngine (CLI — sans progression) ────────────────────
@@ -152,55 +154,71 @@ namespace EasySave.Core.Infrastructure
             CryptoSoftEncryptorAdapter encryptor = BuildEncryptor(job);
             var files = sourceDir.GetFiles("*", SearchOption.AllDirectories);
 
-            state.TotalFiles = files.Length;
-            state.TotalSizeBytes = files.Sum(f => f.Length);
-            state.FilesRemaining = files.Length;
+            
+            int priorityCount = files.Count(IsPriorityFile);
+            _priorityCoordinator.RegisterJob(job.Name, priorityCount);
 
-            int filesCopied = 0;
-            foreach (var file in files)
+            try
             {
-                // 1. VÉRIFICATION LOGICIEL MÉTIER (PAUSE)
-                while (_detector.IsBlocked())
+                state.TotalFiles = files.Length;
+                state.TotalSizeBytes = files.Sum(f => f.Length);
+                state.FilesRemaining = files.Length;
+
+                int filesCopied = 0;
+                foreach (var file in files)
                 {
-                    state.State = JobRunState.BlockedByBusinessSoftware;
-                    _stateWriter.WriteState(state);
-                    Thread.Sleep(1000); // Attente avant re-test
-                    if (reporter?.CancellationToken.IsCancellationRequested == true) break;
-                }
-                state.State = JobRunState.Active;
+                    reporter?.CancellationToken.ThrowIfCancellationRequested();
 
-                reporter?.CancellationToken.ThrowIfCancellationRequested();
-                reporter?.ReportFile(file.FullName, files.Length - filesCopied, files.Length);
+                    reporter?.ReportFile(file.FullName, files.Length - filesCopied, files.Length);
 
-                try
-                {
-                    // 2. GESTION DU PARALLÉLISME (Fichiers > N Ko)
-                    // Seuil récupéré depuis vos paramètres (ex: 100 Ko)
-                    long thresholdBytes = _largeFileSizeThreshold;
+                    bool isPriority = IsPriorityFile(file);
 
-                    if (file.Length > thresholdBytes)
+                   
+                    if (!isPriority)
                     {
-                        _largeFileSemaphore.Wait(); // Attend son tour
-                        try { ProcessFile(file, sourceDir, targetDir, job, encryptor); }
-                        finally { _largeFileSemaphore.Release(); }
+                        var token = reporter?.CancellationToken ?? CancellationToken.None;
+                        _priorityCoordinator.WaitIfPrioritiesExist(token);
                     }
-                    else
+
+                    try
                     {
                         ProcessFile(file, sourceDir, targetDir, job, encryptor);
+                        filesCopied++;
+                        if (isPriority)
+                        {
+                            _priorityCoordinator.MarkPriorityDone(job.Name);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"Erreur sur {file.FullName}: {ex.Message}");
+
+               
+                        if (isPriority)
+                        {
+                            _priorityCoordinator.MarkPriorityDone(job.Name);
+                        }
+                    }
+                    finally
+                    {
+                        int pct = files.Length > 0
+                            ? (int)((filesCopied / (double)files.Length) * 100)
+                            : 0;
+
+                        state.FilesRemaining = files.Length - filesCopied;
+                        state.ProgressPct = pct;
+                        _stateWriter.WriteState(state);
+
+                        reporter?.ReportProgress(pct, state.FilesRemaining);
                     }
 
-                    filesCopied++;
+                    reporter?.WaitIfPaused();
                 }
-                catch (Exception ex)
-                {
-                    Console.WriteLine($"Erreur sur {file.FullName}: {ex.Message}");
-                }
-                finally
-                {
-                    UpdateStateAndReport(state, files.Length, filesCopied, reporter);
-                }
-
-                reporter?.WaitIfPaused();
+            }
+            finally
+            {
+                // ✅ 4) Toujours unregister même si exception/stop
+                _priorityCoordinator.UnregisterJob(job.Name);
             }
         }
 
@@ -216,54 +234,74 @@ namespace EasySave.Core.Infrastructure
             CryptoSoftEncryptorAdapter encryptor = BuildEncryptor(job);
             var filesToCopy = GetDifferentialFiles(sourceDir, targetDir);
 
-            state.TotalFiles = filesToCopy.Count;
-            state.TotalSizeBytes = filesToCopy.Sum(f => f.Length);
-            state.FilesRemaining = filesToCopy.Count;
+            // ✅ Register priorité (sur la liste réellement copiée)
+            int priorityCount = filesToCopy.Count(IsPriorityFile);
+            _priorityCoordinator.RegisterJob(job.Name, priorityCount);
 
-            int filesCopied = 0;
-            foreach (var file in filesToCopy)
+            try
             {
-                // 1. VÉRIFICATION LOGICIEL MÉTIER (PAUSE)
-                while (_detector.IsBlocked())
+                state.TotalFiles = filesToCopy.Count;
+                state.TotalSizeBytes = totalSize;
+                state.FilesRemaining = filesToCopy.Count;
+                state.SizeRemainingBytes = totalSize;
+                state.Timestamp = DateTime.UtcNow;
+                _stateWriter.WriteState(state);
+
+                int filesCopied = 0;
+                foreach (var file in filesToCopy)
                 {
-                    state.State = JobRunState.BlockedByBusinessSoftware;
-                    _stateWriter.WriteState(state);
-                    Thread.Sleep(1000);
-                    if (reporter?.CancellationToken.IsCancellationRequested == true) break;
-                }
-                state.State = JobRunState.Active;
+                    reporter?.CancellationToken.ThrowIfCancellationRequested();
 
-                reporter?.CancellationToken.ThrowIfCancellationRequested();
-                reporter?.ReportFile(file.FullName, filesToCopy.Count - filesCopied, filesToCopy.Count);
+                    reporter?.ReportFile(file.FullName, filesToCopy.Count - filesCopied, filesToCopy.Count);
 
-                try
-                {
-                    // 2. GESTION DU PARALLÉLISME (Fichiers > N Ko)
-                    long thresholdBytes = _largeFileSizeThreshold;
+                    bool isPriority = IsPriorityFile(file);
 
-                    if (file.Length > thresholdBytes)
+                    // ✅ Si non prioritaire => attendre qu'il n’y ait plus aucune priorité globale
+                    if (!isPriority)
                     {
-                        _largeFileSemaphore.Wait();
-                        try { ProcessFile(file, sourceDir, targetDir, job, encryptor); }
-                        finally { _largeFileSemaphore.Release(); }
+                        var token = reporter?.CancellationToken ?? CancellationToken.None;
+                        _priorityCoordinator.WaitIfPrioritiesExist(token);
                     }
-                    else
+
+                    try
                     {
                         ProcessFile(file, sourceDir, targetDir, job, encryptor);
+                        filesCopied++;
+
+                        if (isPriority)
+                        {
+                            _priorityCoordinator.MarkPriorityDone(job.Name);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"Erreur sur {file.FullName}: {ex.Message}");
+
+                        // ⚠️ idem : ne pas bloquer le système
+                        if (isPriority)
+                        {
+                            _priorityCoordinator.MarkPriorityDone(job.Name);
+                        }
+                    }
+                    finally
+                    {
+                        int pct = filesToCopy.Count > 0
+                            ? (int)((filesCopied / (double)filesToCopy.Count) * 100)
+                            : 0;
+
+                        state.FilesRemaining = filesToCopy.Count - filesCopied;
+                        state.ProgressPct = pct;
+                        _stateWriter.WriteState(state);
+
+                        reporter?.ReportProgress(pct, state.FilesRemaining);
                     }
 
-                    filesCopied++;
+                    reporter?.WaitIfPaused();
                 }
-                catch (Exception ex)
-                {
-                    Console.WriteLine($"Erreur sur {file.FullName}: {ex.Message}");
-                }
-                finally
-                {
-                    UpdateStateAndReport(state, filesToCopy.Count, filesCopied, reporter);
-                }
-
-                reporter?.WaitIfPaused();
+            }
+            finally
+            {
+                _priorityCoordinator.UnregisterJob(job.Name);
             }
         }
 
@@ -451,24 +489,27 @@ namespace EasySave.Core.Infrastructure
         }
 
         private void ProcessFile(
-            FileInfo file,
-            DirectoryInfo sourceDir,
-            DirectoryInfo targetDir,
-            BackupJob job,
-            CryptoSoftEncryptorAdapter encryptor)
+    FileInfo file,
+    DirectoryInfo sourceDir,
+    DirectoryInfo targetDir,
+    BackupJob job,
+    CryptoSoftEncryptorAdapter encryptor)
         {
             var startTime = DateTime.Now;
             var relativePath = Path.GetRelativePath(sourceDir.FullName, file.FullName);
             var targetPath = Path.Combine(targetDir.FullName, relativePath);
-
             var targetFileDir = Path.GetDirectoryName(targetPath);
+
+            // ✅ userId pour logs centralisés
+            var userId = $"{Environment.MachineName}\\{Environment.UserName}";
+
             if (!Directory.Exists(targetFileDir))
-                Directory.CreateDirectory(targetFileDir);
+                Directory.CreateDirectory(targetFileDir!);
 
             File.Copy(file.FullName, targetPath, true);
             var copyTime = (DateTime.Now - startTime).TotalMilliseconds;
 
-            int encryptTime = 0;
+            long encryptTime = 0;
             if (encryptor != null && encryptor.ShouldEncrypt(targetPath))
             {
                 encryptTime = encryptor.EncryptFile(targetPath, job.Name);
@@ -478,7 +519,6 @@ namespace EasySave.Core.Infrastructure
 
             _logWriter.WriteDailyLog(new LogEntry
             {
-                Message = "Operation type : Copy File",
                 Timestamp = DateTime.Now,
                 BackupName = job.Name,
                 SourcePathUNC = file.FullName,
@@ -486,13 +526,22 @@ namespace EasySave.Core.Infrastructure
                 FileSizeBytes = file.Length,
                 TransferTimeMs = (long)copyTime,
                 EncryptionTimeMs = encryptTime,
+
+                // ⚠️ IMPORTANT : cette propriété doit exister dans EasyLog.dll
+                User = userId
             });
         }
 
-        void IBackupEngineWithProgress.Run(BackupJob job, IProgressReporter reporter)
+        private bool IsPriorityFile(FileInfo file)
         {
-            throw new NotImplementedException();
-           // new FileSystemBackupEngine(_logWriter, _stateWriter, _settings, _detector, _largeFileSizeThreshold).Run(job, reporter); 
+            var ext = file.Extension?.ToLowerInvariant() ?? "";
+            foreach (var p in _settings.PriorityExtensions)
+            {
+                if (string.IsNullOrWhiteSpace(p)) continue;
+                var pe = p.StartsWith(".") ? p.ToLowerInvariant() : "." + p.ToLowerInvariant();
+                if (ext == pe) return true;
+            }
+            return false;
         }
     }
 }

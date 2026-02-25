@@ -2,4 +2,5 @@
   <Project Path="EasySave.Core/EasySave.Core.csproj" />
   <Project Path="EasySaveCLI/EasySave.csproj" />
   <Project Path="EasySaveWPF/EasySaveWPF.csproj" />
+  <Project Path="LogCentralizer/LogCentralizer.csproj" Id="ad628b93-da45-4a02-9dec-41d4abf76f28" />
 </Solution>
