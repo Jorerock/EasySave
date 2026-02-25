@@ -2,65 +2,165 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="{DynamicResource CreateJob_Title}"
-        Height="600" Width="700"
-        WindowStartupLocation="CenterOwner">
+        Height="700" Width="600" MinWidth="500"
+        WindowStartupLocation="CenterOwner"
+        Background="{DynamicResource BackgroundBrush}">
 
-    <Grid Margin="20">
-        <Grid.RowDefinitions>
-            <RowDefinition Height="*"/>
-            <RowDefinition Height="Auto"/>
-        </Grid.RowDefinitions>
+    <Window.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="/EasySaveWPF;component/Theme/Theme.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
 
-        <ScrollViewer Grid.Row="0" VerticalScrollBarVisibility="Auto">
+            <Style x:Key="FieldLabel" TargetType="TextBlock">
+                <Setter Property="FontWeight" Value="SemiBold"/>
+                <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
+                <Setter Property="Margin" Value="0,0,0,6"/>
+            </Style>
+
+            <Style x:Key="FieldHint" TargetType="TextBlock">
+                <Setter Property="FontSize" Value="11"/>
+                <Setter Property="Foreground" Value="{StaticResource SecondaryTextBrush}"/>
+                <Setter Property="Margin" Value="0,0,0,6"/>
+            </Style>
+
+            <!-- ✅ Style ComboBox (pour éviter l’erreur TargetType TextBox vs ComboBox) -->
+            <Style x:Key="ModernComboBox" TargetType="ComboBox">
+                <Setter Property="Background" Value="{StaticResource SurfaceBrush}"/>
+                <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
+                <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}"/>
+                <Setter Property="BorderThickness" Value="1"/>
+                <Setter Property="Padding" Value="10,6"/>
+                <Setter Property="MinHeight" Value="34"/>
+                <Setter Property="VerticalContentAlignment" Value="Center"/>
+            </Style>
+
+        </ResourceDictionary>
+    </Window.Resources>
+
+    <DockPanel LastChildFill="True">
+
+        <!-- Header -->
+        <Border DockPanel.Dock="Top"
+                Background="{StaticResource SurfaceBrush}"
+                Padding="24,16"
+                BorderBrush="{StaticResource BorderBrush}"
+                BorderThickness="0,0,0,1">
+            <StackPanel Orientation="Horizontal">
+                <TextBlock FontFamily="{StaticResource IconFont}"
+                           Text="&#xE710;"
+                           FontSize="20"
+                           Foreground="{StaticResource PrimaryBrush}"
+                           Margin="0,0,12,0"
+                           VerticalAlignment="Center"/>
+                <TextBlock Text="{DynamicResource CreateJob_Title}"
+                           FontSize="18"
+                           FontWeight="SemiBold"
+                           Foreground="{StaticResource TextBrush}"/>
+            </StackPanel>
+        </Border>
+
+        <!-- Actions -->
+        <Border DockPanel.Dock="Bottom"
+                Background="{StaticResource SurfaceBrush}"
+                Padding="24,16"
+                BorderBrush="{StaticResource BorderBrush}"
+                BorderThickness="0,1,0,0">
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                <Button Content="{DynamicResource Common_Cancel}"
+                        Width="100"
+                        Click="Cancel_Click"
+                        Style="{StaticResource ModernButton}"
+                        Margin="0,0,12,0"/>
+                <Button Content="{DynamicResource Common_Create}"
+                        Width="120"
+                        Click="Create_Click"
+                        Style="{StaticResource PrimaryButton}"/>
+            </StackPanel>
+        </Border>
+
+        <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="24">
             <StackPanel>
 
-                <TextBlock FontWeight="Bold" Text="{DynamicResource CreateJob_JobName}" />
-                <TextBox x:Name="JobNameTextBox" Height="30" Margin="0,5,0,15"/>
+                <!-- Info Générale -->
+                <TextBlock Text="{DynamicResource CreateJob_Section_General}"
+                           Style="{StaticResource CardTitle}"
+                           Margin="4,0,0,8"/>
+                <Border Style="{StaticResource ModernCard}">
+                    <StackPanel>
+                        <TextBlock Style="{StaticResource FieldLabel}"
+                                   Text="{DynamicResource CreateJob_JobName}"/>
+                        <TextBox x:Name="JobNameTextBox"
+                                 Style="{StaticResource ModernTextBox}"
+                                 Margin="0,0,0,16"/>
 
-                <TextBlock FontWeight="Bold" Text="{DynamicResource CreateJob_SourceDirectory}" />
-                <TextBlock Text="{DynamicResource Common_PathHint}" FontSize="11" Foreground="Gray" Margin="0,2"/>
-                <TextBox x:Name="SourceTextBox" Height="30" Margin="0,5,0,15"/>
+                        <TextBlock Style="{StaticResource FieldLabel}"
+                                   Text="{DynamicResource CreateJob_BackupType}"/>
 
-                <TextBlock FontWeight="Bold" Text="{DynamicResource CreateJob_TargetDirectory}" />
-                <TextBlock Text="{DynamicResource Common_PathHint}" FontSize="11" Foreground="Gray" Margin="0,2"/>
-                <TextBox x:Name="TargetTextBox" Height="30" Margin="0,5,0,15"/>
+                        <!-- ✅ ICI : ModernComboBox au lieu de ModernTextBox -->
+                        <ComboBox x:Name="BackupTypeComboBox"
+                                  Style="{StaticResource ModernComboBox}">
+                            <ComboBoxItem Content="{DynamicResource BackupType_Full}" IsSelected="True"/>
+                            <ComboBoxItem Content="{DynamicResource BackupType_Differential}"/>
+                        </ComboBox>
+                    </StackPanel>
+                </Border>
 
-                <TextBlock FontWeight="Bold" Text="{DynamicResource CreateJob_BackupType}" />
-                <ComboBox x:Name="BackupTypeComboBox" Height="30" Margin="0,5,0,15">
-                    <ComboBoxItem Content="{DynamicResource BackupType_Full}" IsSelected="True"/>
-                    <ComboBoxItem Content="{DynamicResource BackupType_Differential}"/>
-                </ComboBox>
+                <!-- Répertoires -->
+                <TextBlock Text="{DynamicResource CreateJob_Section_Directories}"
+                           Style="{StaticResource CardTitle}"
+                           Margin="4,0,0,8"/>
+                <Border Style="{StaticResource ModernCard}">
+                    <StackPanel>
+                        <TextBlock Style="{StaticResource FieldLabel}"
+                                   Text="{DynamicResource CreateJob_SourceDirectory}"/>
+                        <TextBlock Style="{StaticResource FieldHint}"
+                                   Text="{DynamicResource Common_PathHint}"/>
+                        <TextBox x:Name="SourceTextBox"
+                                 Style="{StaticResource ModernTextBox}"
+                                 Margin="0,0,0,16"/>
 
-                <GroupBox Header="{DynamicResource CreateJob_EncryptionOptions}" Margin="0,5,0,15">
-                    <StackPanel Margin="10">
+                        <TextBlock Style="{StaticResource FieldLabel}"
+                                   Text="{DynamicResource CreateJob_TargetDirectory}"/>
+                        <TextBlock Style="{StaticResource FieldHint}"
+                                   Text="{DynamicResource Common_PathHint}"/>
+                        <TextBox x:Name="TargetTextBox"
+                                 Style="{StaticResource ModernTextBox}"/>
+                    </StackPanel>
+                </Border>
+
+                <!-- Options / Chiffrement -->
+                <TextBlock Text="{DynamicResource CreateJob_Section_Options}"
+                           Style="{StaticResource CardTitle}"
+                           Margin="4,0,0,8"/>
+                <Border Style="{StaticResource ModernCard}" Margin="0,0,0,8">
+                    <StackPanel>
                         <CheckBox x:Name="EnableEncryptionCheckBox"
                                   Content="{DynamicResource CreateJob_EnableEncryption}"
                                   Checked="EnableEncryption_Changed"
-                                  Unchecked="EnableEncryption_Changed"/>
+                                  Unchecked="EnableEncryption_Changed"
+                                  FontWeight="SemiBold"
+                                  FontSize="14"
+                                  Foreground="{StaticResource TextBrush}"/>
 
-                        <StackPanel x:Name="EncryptionPanel" IsEnabled="False" Margin="0,10,0,0">
-                            <TextBlock FontWeight="Bold" Text="{DynamicResource CreateJob_EncryptionKey}" />
-                            <TextBox x:Name="EncryptionKeyTextBox" Height="30" Margin="0,5,0,15"/>
+                        <StackPanel x:Name="EncryptionPanel" IsEnabled="False" Margin="0,16,0,0">
+                            <TextBlock Style="{StaticResource FieldLabel}"
+                                       Text="{DynamicResource CreateJob_EncryptionKey}"/>
+                            <TextBox x:Name="EncryptionKeyTextBox"
+                                     Style="{StaticResource ModernTextBox}"
+                                     Margin="0,0,0,16"/>
 
-                            <TextBlock FontWeight="Bold" Text="{DynamicResource CreateJob_ExtensionsToEncrypt}" />
-                            <TextBlock Text="{DynamicResource CreateJob_ExtensionsHint}"
-                                       FontSize="11" Foreground="Gray" Margin="0,2"/>
-                            <TextBox x:Name="ExtensionsTextBox" Height="30" Margin="0,5,0,0"/>
+                            <TextBlock Style="{StaticResource FieldLabel}"
+                                       Text="{DynamicResource CreateJob_ExtensionsToEncrypt}"/>
+                            <TextBlock Style="{StaticResource FieldHint}"
+                                       Text="{DynamicResource CreateJob_ExtensionsHint}"/>
+                            <TextBox x:Name="ExtensionsTextBox"
+                                     Style="{StaticResource ModernTextBox}"/>
                         </StackPanel>
                     </StackPanel>
-                </GroupBox>
+                </Border>
 
             </StackPanel>
         </ScrollViewer>
-
-        <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Right">
-            <Button Content="{DynamicResource Common_Create}"
-                    Width="120" Height="40" Margin="0,0,10,0"
-                    Click="Create_Click"
-                    Background="#4CAF50" Foreground="White"/>
-            <Button Content="{DynamicResource Common_Cancel}"
-                    Width="120" Height="40"
-                    Click="Cancel_Click"/>
-        </StackPanel>
-    </Grid>
+    </DockPanel>
 </Window>

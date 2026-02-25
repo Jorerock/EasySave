@@ -6,186 +6,159 @@
         xmlns:vm="clr-namespace:EasySave.WPF.ViewModels"
         mc:Ignorable="d"
         Title="{DynamicResource Main_Title}"
-        Height="700"
-        Width="1100"
-        WindowStartupLocation="CenterScreen">
+        Height="760" Width="1200" MinWidth="900" MinHeight="600"
+        WindowStartupLocation="CenterScreen"
+        Background="{DynamicResource BackgroundBrush}">
 
     <Window.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <!-- Chemin absolu vers le dossier theme -->
+                <ResourceDictionary Source="pack://application:,,,/EasySaveWPF;component/Theme/Theme.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
 
-        <!-- Style bouton icône Pause/Play/Stop -->
-        <Style x:Key="IconButton" TargetType="Button">
-            <Setter Property="Width" Value="32"/>
-            <Setter Property="Height" Value="32"/>
-            <Setter Property="Margin" Value="2,0"/>
-            <Setter Property="FontSize" Value="14"/>
-            <Setter Property="Cursor" Value="Hand"/>
-            <Setter Property="Background" Value="Transparent"/>
-            <Setter Property="BorderBrush" Value="#CCCCCC"/>
-            <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="Button">
-                        <Border Background="{TemplateBinding Background}"
-                                BorderBrush="{TemplateBinding BorderBrush}"
-                                BorderThickness="{TemplateBinding BorderThickness}"
-                                CornerRadius="4">
-                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                        </Border>
-                        <ControlTemplate.Triggers>
-                            <Trigger Property="IsMouseOver" Value="True">
-                                <Setter Property="Background" Value="#E3F2FD"/>
-                            </Trigger>
-                            <Trigger Property="IsEnabled" Value="False">
-                                <Setter Property="Opacity" Value="0.4"/>
-                            </Trigger>
-                        </ControlTemplate.Triggers>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
+            <!-- Bouton d'action icône (pour la liste des jobs) -->
+            <Style x:Key="IconActionBtn" TargetType="Button">
+                <Setter Property="Width" Value="32"/>
+                <Setter Property="Height" Value="32"/>
+                <Setter Property="Margin" Value="4,0"/>
+                <Setter Property="FontFamily" Value="{StaticResource IconFont}"/>
+                <Setter Property="FontSize" Value="14"/>
+                <Setter Property="Cursor" Value="Hand"/>
+                <Setter Property="Background" Value="Transparent"/>
+                <Setter Property="BorderThickness" Value="0"/>
+                <Setter Property="Foreground" Value="{StaticResource SecondaryTextBrush}"/>
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="Button">
+                            <Border Background="{TemplateBinding Background}" CornerRadius="16">
+                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter Property="Background" Value="#E5E5E5"/>
+                                    <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
+                                </Trigger>
+                                <Trigger Property="IsEnabled" Value="False">
+                                    <Setter Property="Opacity" Value="0.3"/>
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
 
-        <!-- DataTemplate carte de suivi d'un job en cours -->
-        <DataTemplate x:Key="RunningJobTemplate" DataType="{x:Type vm:BackupJobViewModel}">
-            <Border Background="White"
-                    BorderBrush="#E0E0E0"
-                    BorderThickness="1"
-                    CornerRadius="4"
-                    Margin="0,3"
-                    Padding="10,8">
-                <Grid>
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="5"/>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="4"/>
-                        <RowDefinition Height="Auto"/>
-                    </Grid.RowDefinitions>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="Auto"/>
-                    </Grid.ColumnDefinitions>
+            <!-- Template pour Job en cours -->
+            <DataTemplate x:Key="RunningJobTemplate" DataType="{x:Type vm:BackupJobViewModel}">
+                <Border Background="{StaticResource BackgroundBrush}" 
+                        CornerRadius="6" Margin="0,0,0,8" Padding="12">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="8"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="8"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
 
-                    <!-- Ligne 1 : Nom + badge état -->
-                    <StackPanel Grid.Row="0" Grid.Column="0"
-                                Orientation="Horizontal"
-                                VerticalAlignment="Center">
-                        <TextBlock Text="{Binding Job.Name, Mode=OneWay}"
-                                   FontWeight="SemiBold"
-                                   FontSize="13"/>
-                        <Border Margin="8,0,0,0" CornerRadius="8" Padding="6,1">
-                            <Border.Style>
+                        <!-- Ligne 1 : Nom + Statut -->
+                        <DockPanel Grid.Row="0">
+                            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                                <Button Style="{StaticResource IconActionBtn}" Content="&#xE769;" ToolTip="Pause" Command="{Binding PauseCommand}"/>
+                                <Button Style="{StaticResource IconActionBtn}" Content="&#xE768;" ToolTip="Reprendre" Command="{Binding PlayCommand}"/>
+                                <Button Style="{StaticResource IconActionBtn}" Content="&#xE71A;" ToolTip="Arrêter" Command="{Binding StopCommand}"/>
+                            </StackPanel>
+
+                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                <TextBlock Text="{Binding Job.Name, Mode=OneWay}" FontWeight="SemiBold" FontSize="14" Foreground="{StaticResource TextBrush}"/>
+                                <Border Margin="8,0,0,0" CornerRadius="4" Padding="6,2">
+                                    <Border.Style>
+                                        <Style TargetType="Border">
+                                            <Setter Property="Background" Value="#E8F5E9"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding State, Mode=OneWay}" Value="Paused">
+                                                    <Setter Property="Background" Value="#FFF3E0"/>
+                                                </DataTrigger>
+                                                <DataTrigger Binding="{Binding State, Mode=OneWay}" Value="Stopped">
+                                                    <Setter Property="Background" Value="#FFEBEE"/>
+                                                </DataTrigger>
+                                                <DataTrigger Binding="{Binding State, Mode=OneWay}" Value="Failed">
+                                                    <Setter Property="Background" Value="#FFEBEE"/>
+                                                </DataTrigger>
+                                                <DataTrigger Binding="{Binding State, Mode=OneWay}" Value="Idle">
+                                                    <Setter Property="Background" Value="#E0E0E0"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Border.Style>
+                                    <TextBlock Text="{Binding StateLabel, Mode=OneWay}" FontSize="11" FontWeight="Medium">
+                                        <TextBlock.Style>
+                                            <Style TargetType="TextBlock">
+                                                <Setter Property="Foreground" Value="#2E7D32"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding State, Mode=OneWay}" Value="Paused">
+                                                        <Setter Property="Foreground" Value="#E65100"/>
+                                                    </DataTrigger>
+                                                    <DataTrigger Binding="{Binding State, Mode=OneWay}" Value="Stopped">
+                                                        <Setter Property="Foreground" Value="#C62828"/>
+                                                    </DataTrigger>
+                                                    <DataTrigger Binding="{Binding State, Mode=OneWay}" Value="Failed">
+                                                        <Setter Property="Foreground" Value="#C62828"/>
+                                                    </DataTrigger>
+                                                    <DataTrigger Binding="{Binding State, Mode=OneWay}" Value="Idle">
+                                                        <Setter Property="Foreground" Value="#424242"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </TextBlock.Style>
+                                    </TextBlock>
+                                </Border>
+                            </StackPanel>
+                        </DockPanel>
+
+                        <!-- Barre de progression stylisée -->
+                        <ProgressBar Grid.Row="2" Value="{Binding Progress, Mode=OneWay}" Height="6" BorderThickness="0">
+                            <ProgressBar.Resources>
                                 <Style TargetType="Border">
-                                    <Setter Property="Background" Value="#E8F5E9"/>
+                                    <Setter Property="CornerRadius" Value="3"/>
+                                </Style>
+                            </ProgressBar.Resources>
+                            <ProgressBar.Style>
+                                <Style TargetType="ProgressBar">
+                                    <Setter Property="Foreground" Value="{StaticResource PrimaryBrush}"/>
+                                    <Setter Property="Background" Value="#E0E0E0"/>
                                     <Style.Triggers>
                                         <DataTrigger Binding="{Binding State, Mode=OneWay}" Value="Paused">
-                                            <Setter Property="Background" Value="#FFF8E1"/>
-                                        </DataTrigger>
-                                        <DataTrigger Binding="{Binding State, Mode=OneWay}" Value="Stopped">
-                                            <Setter Property="Background" Value="#FEEBEE"/>
-                                        </DataTrigger>
-                                        <DataTrigger Binding="{Binding State, Mode=OneWay}" Value="Failed">
-                                            <Setter Property="Background" Value="#FEEBEE"/>
+                                            <Setter Property="Foreground" Value="#FF9800"/>
                                         </DataTrigger>
                                         <DataTrigger Binding="{Binding State, Mode=OneWay}" Value="Completed">
-                                            <Setter Property="Background" Value="#E3F2FD"/>
+                                            <Setter Property="Foreground" Value="{StaticResource SuccessBrush}"/>
                                         </DataTrigger>
-                                        <DataTrigger Binding="{Binding State, Mode=OneWay}" Value="Idle">
-                                            <Setter Property="Background" Value="#F5F5F5"/>
+                                        <DataTrigger Binding="{Binding State, Mode=OneWay}" Value="Failed">
+                                            <Setter Property="Foreground" Value="{StaticResource DangerBrush}"/>
                                         </DataTrigger>
                                     </Style.Triggers>
                                 </Style>
-                            </Border.Style>
-                            <TextBlock Text="{Binding StateLabel, Mode=OneWay}"
-                                       FontSize="11" FontWeight="Medium">
-                                <TextBlock.Style>
-                                    <Style TargetType="TextBlock">
-                                        <Setter Property="Foreground" Value="#2E7D32"/>
-                                        <Style.Triggers>
-                                            <DataTrigger Binding="{Binding State, Mode=OneWay}" Value="Paused">
-                                                <Setter Property="Foreground" Value="#F57F17"/>
-                                            </DataTrigger>
-                                            <DataTrigger Binding="{Binding State, Mode=OneWay}" Value="Stopped">
-                                                <Setter Property="Foreground" Value="#C62828"/>
-                                            </DataTrigger>
-                                            <DataTrigger Binding="{Binding State, Mode=OneWay}" Value="Failed">
-                                                <Setter Property="Foreground" Value="#C62828"/>
-                                            </DataTrigger>
-                                            <DataTrigger Binding="{Binding State, Mode=OneWay}" Value="Completed">
-                                                <Setter Property="Foreground" Value="#1565C0"/>
-                                            </DataTrigger>
-                                            <DataTrigger Binding="{Binding State, Mode=OneWay}" Value="Idle">
-                                                <Setter Property="Foreground" Value="#616161"/>
-                                            </DataTrigger>
-                                        </Style.Triggers>
-                                    </Style>
-                                </TextBlock.Style>
+                            </ProgressBar.Style>
+                        </ProgressBar>
+
+                        <!-- Détails fichiers -->
+                        <DockPanel Grid.Row="4" LastChildFill="True">
+                            <TextBlock DockPanel.Dock="Left" FontSize="12" Foreground="{StaticResource SecondaryTextBrush}" FontWeight="SemiBold">
+                                <Run Text="{Binding Progress, Mode=OneWay, StringFormat={}{0}%}"/>
+                                <Run Text=" • "/>
+                                <Run Text="{Binding FilesRemaining, Mode=OneWay, StringFormat={}Reste: {0}}"/>
+                                <Run Text="/"/>
+                                <Run Text="{Binding TotalFiles, Mode=OneWay}"/>
                             </TextBlock>
-                        </Border>
-                    </StackPanel>
-
-                    <!-- Boutons Pause / Play / Stop -->
-                    <StackPanel Grid.Row="0" Grid.Column="1"
-                                Orientation="Horizontal"
-                                VerticalAlignment="Center">
-                        <Button Style="{StaticResource IconButton}"
-                                Content="⏸" ToolTip="Pause"
-                                Command="{Binding PauseCommand}"/>
-                        <Button Style="{StaticResource IconButton}"
-                                Content="▶" ToolTip="Reprendre"
-                                Command="{Binding PlayCommand}"/>
-                        <Button Style="{StaticResource IconButton}"
-                                Content="⏹" ToolTip="Arrêter"
-                                Command="{Binding StopCommand}"/>
-                    </StackPanel>
-
-                    <!-- Barre de progression -->
-                    <ProgressBar Grid.Row="2" Grid.ColumnSpan="2"
-                                 Value="{Binding Progress, Mode=OneWay}">
-                        <ProgressBar.Style>
-                            <Style TargetType="ProgressBar">
-                                <Setter Property="Height" Value="12"/>
-                                <Setter Property="Minimum" Value="0"/>
-                                <Setter Property="Maximum" Value="100"/>
-                                <Setter Property="Foreground" Value="#2196F3"/>
-                                <Style.Triggers>
-                                    <DataTrigger Binding="{Binding State, Mode=OneWay}" Value="Paused">
-                                        <Setter Property="Foreground" Value="#FFA726"/>
-                                    </DataTrigger>
-                                    <DataTrigger Binding="{Binding State, Mode=OneWay}" Value="Completed">
-                                        <Setter Property="Foreground" Value="#43A047"/>
-                                    </DataTrigger>
-                                    <DataTrigger Binding="{Binding State, Mode=OneWay}" Value="Failed">
-                                        <Setter Property="Foreground" Value="#E53935"/>
-                                    </DataTrigger>
-                                    <DataTrigger Binding="{Binding State, Mode=OneWay}" Value="Stopped">
-                                        <Setter Property="Foreground" Value="#E53935"/>
-                                    </DataTrigger>
-                                </Style.Triggers>
-                            </Style>
-                        </ProgressBar.Style>
-                    </ProgressBar>
-
-                    <!-- Détails : % fichiers et fichier en cours -->
-                    <StackPanel Grid.Row="4" Grid.ColumnSpan="2" Orientation="Horizontal">
-                        <TextBlock FontSize="11" Foreground="#555">
-                            <Run Text="{Binding Progress, Mode=OneWay, StringFormat={}{0}%}"/>
-                            <Run Text=" — "/>
-                            <Run Text="{Binding FilesRemaining, Mode=OneWay, StringFormat={}Restants : {0}}"/>
-                            <Run Text=" / "/>
-                            <Run Text="{Binding TotalFiles, Mode=OneWay}"/>
-                        </TextBlock>
-                        <TextBlock Margin="8,0,0,0"
-                                   Text="{Binding CurrentFile, Mode=OneWay}"
-                                   Foreground="#888"
-                                   FontSize="11"
-                                   FontStyle="Italic"
-                                   MaxWidth="300"
-                                   TextTrimming="CharacterEllipsis"/>
-                    </StackPanel>
-                </Grid>
-            </Border>
-        </DataTemplate>
-
+                            <TextBlock Margin="12,0,0,0" Text="{Binding CurrentFile, Mode=OneWay}" 
+                                       Foreground="{StaticResource SecondaryTextBrush}" FontSize="11"
+                                       FontStyle="Italic" TextTrimming="CharacterEllipsis" TextAlignment="Right"/>
+                        </DockPanel>
+                    </Grid>
+                </Border>
+            </DataTemplate>
+        </ResourceDictionary>
     </Window.Resources>
 
     <Grid>
@@ -195,174 +168,196 @@
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
-        <!-- Header -->
-        <Border Grid.Row="0" Background="#2196F3" Padding="20">
-            <TextBlock Text="{DynamicResource Header_Title}"
-                       FontSize="24"
-                       FontWeight="Bold"
-                       Foreground="White"/>
+        <!-- HEADER APP BAR -->
+        <Border Grid.Row="0" Background="{StaticResource SurfaceBrush}" Padding="24,16" 
+                BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1">
+            <DockPanel>
+                <StackPanel Orientation="Horizontal" DockPanel.Dock="Left" VerticalAlignment="Center">
+                    <TextBlock FontFamily="{StaticResource IconFont}" Text="&#xE74C;" FontSize="20" Foreground="{StaticResource PrimaryBrush}" Margin="0,0,12,0" VerticalAlignment="Center"/>
+                    <TextBlock Text="{DynamicResource Header_Title}" FontSize="18" FontWeight="SemiBold" Foreground="{StaticResource TextBrush}"/>
+                </StackPanel>
+
+                <Button DockPanel.Dock="Right" Style="{StaticResource ModernButton}" Click="AppSettings_Click" HorizontalAlignment="Right" Padding="12,6">
+                    <StackPanel Orientation="Horizontal" Height="24" Width="103">
+                        <TextBlock FontFamily="{StaticResource IconFont}" Text="&#xE713;" Margin="8,0,8,0" VerticalAlignment="Center" Width="12" RenderTransformOrigin="1.425,0.553"/>
+                        <TextBlock Text="{DynamicResource Btn_Settings}" VerticalAlignment="Center" RenderTransformOrigin="0.479,-0.061" Margin="0,0,8,0"/>
+                    </StackPanel>
+                </Button>
+            </DockPanel>
         </Border>
 
-        <!-- Main Content -->
-        <Grid Grid.Row="1" Margin="20">
+        <!-- MAIN CONTENT -->
+        <Grid Grid.Row="1" Margin="24">
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="2*"/>
-                <ColumnDefinition Width="Auto"/>
-                <ColumnDefinition Width="*" MinWidth="320"/>
+                <ColumnDefinition Width="6.5*"/>
+                <ColumnDefinition Width="16"/>
+                <!-- Espace -->
+                <ColumnDefinition Width="3.5*" MinWidth="340"/>
             </Grid.ColumnDefinitions>
 
-            <!-- ═══ COLONNE GAUCHE : liste des jobs enregistrés ══════════════ -->
+            <!-- COLONNE GAUCHE -->
             <Grid Grid.Column="0">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="*"/>
                     <RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
 
-                <GroupBox Grid.Row="0" Header="{DynamicResource Jobs_Header}" Margin="0,0,10,0">
-                    <DataGrid x:Name="JobsDataGrid"
-          ItemsSource="{Binding Jobs}"
-          SelectedItem="{Binding SelectedJob}"
-          AutoGenerateColumns="False"
-          CanUserAddRows="False"
-          SelectionMode="Single">
-                        <DataGrid.Columns>
-                            <DataGridTextColumn Header="{DynamicResource Col_Name}"
-                                                Binding="{Binding Name}" Width="*"/>
-                            <DataGridTextColumn Header="{DynamicResource Col_Type}"
-                                                Binding="{Binding Type}" Width="100"/>
-                            <DataGridTextColumn Header="{DynamicResource Col_Source}"
-                                                Binding="{Binding SourceDirectory}" Width="150"/>
-                            <DataGridTextColumn Header="{DynamicResource Col_Target}"
-                                                Binding="{Binding TargetDirectory}" Width="150"/>
-                            <DataGridCheckBoxColumn Header="{DynamicResource Col_Encrypted}"
-                                                    Binding="{Binding EnableEncryption}" Width="80"/>
-                        </DataGrid.Columns>
-                    </DataGrid>
-                </GroupBox>
+                <!-- Carte : Liste des Jobs -->
+                <Border Grid.Row="0" Style="{StaticResource ModernCard}">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="617*"/>
+                            <ColumnDefinition Width="88*"/>
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                        </Grid.RowDefinitions>
 
-                <!-- Détails du job sélectionné -->
-                <GroupBox Grid.Row="1" Header="{DynamicResource Details_Header}" Margin="0,10,10,0">
-                    <StackPanel DataContext="{Binding SelectedJob}">
-                        <TextBlock Margin="5">
-                            <Run Text="{DynamicResource Lbl_Name}"/>
-                            <Run Text=" "/>
-                            <Run Text="{Binding Name}"/>
-                        </TextBlock>
-                        <TextBlock Margin="5">
-                            <Run Text="{DynamicResource Lbl_Type}"/>
-                            <Run Text=" "/>
-                            <Run Text="{Binding Type}"/>
-                        </TextBlock>
-                        <TextBlock Margin="5" TextWrapping="Wrap">
-                            <Run Text="{DynamicResource Lbl_Source}"/>
-                            <Run Text=" "/>
-                            <Run Text="{Binding SourceDirectory}"/>
-                        </TextBlock>
-                        <TextBlock Margin="5" TextWrapping="Wrap">
-                            <Run Text="{DynamicResource Lbl_Target}"/>
-                            <Run Text=" "/>
-                            <Run Text="{Binding TargetDirectory}"/>
-                        </TextBlock>
-                        <TextBlock Margin="5">
-                            <Run Text="{DynamicResource Lbl_Encryption}"/>
-                            <Run Text=" "/>
-                            <Run Text="{Binding EnableEncryption}"/>
-                        </TextBlock>
-                    </StackPanel>
-                </GroupBox>
+                        <DockPanel Grid.Row="0" Margin="0,0,0,16" Grid.ColumnSpan="2">
+                            <TextBlock DockPanel.Dock="Left" Text="{DynamicResource Jobs_Header}" Style="{StaticResource CardTitle}" Margin="0"/>
+
+                            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" HorizontalAlignment="Right">
+                                <Button Content="{DynamicResource Btn_RunSelected}" Command="{Binding RunJobCommand}" Style="{StaticResource ModernButton}" Margin="0,0,8,0" Height="22" Width="124"/>
+                                <Button Content="{DynamicResource Btn_Delete}" Command="{Binding DeleteJobCommand}" Style="{StaticResource DangerButton}" Height="26" Width="105" Click="Button_Click">
+                                    <Button.ContentTemplate>
+                                        <DataTemplate>
+                                            <StackPanel Orientation="Horizontal">
+                                                <TextBlock FontFamily="{StaticResource IconFont}" Text="&#xE74D;" Margin="0,0,6,0"/>
+                                                <TextBlock Text="{Binding}"/>
+                                            </StackPanel>
+                                        </DataTemplate>
+                                    </Button.ContentTemplate>
+                                </Button>
+                            </StackPanel>
+                        </DockPanel>
+
+                        <DataGrid x:Name="JobsDataGrid" Grid.Row="1"
+                                  Style="{StaticResource ModernDataGrid}"
+                                  ItemsSource="{Binding Jobs}"
+                                  SelectedItem="{Binding SelectedJob}"
+                                  AutoGenerateColumns="False" CanUserAddRows="False" SelectionMode="Single" Grid.ColumnSpan="2">
+                            <DataGrid.Columns>
+                                <DataGridTextColumn Header="{DynamicResource Col_Name}" Binding="{Binding Name}" Width="2*"/>
+                                <DataGridTextColumn Header="{DynamicResource Col_Type}" Binding="{Binding Type}" Width="*"/>
+                                <DataGridTextColumn Header="{DynamicResource Col_Source}" Binding="{Binding SourceDirectory}" Width="1.5*"/>
+                                <DataGridTextColumn Header="{DynamicResource Col_Target}" Binding="{Binding TargetDirectory}" Width="1.5*"/>
+                                <DataGridCheckBoxColumn Header="{DynamicResource Col_Encrypted}" Binding="{Binding EnableEncryption}" Width="80"/>
+                            </DataGrid.Columns>
+                        </DataGrid>
+                    </Grid>
+                </Border>
+
+                <!-- Carte : Détails -->
+                <Border Grid.Row="1" Style="{StaticResource ModernCard}" Margin="0,0,0,0">
+                    <Grid DataContext="{Binding SelectedJob}">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+                        <TextBlock Grid.Row="0" Text="{DynamicResource Details_Header}" Style="{StaticResource CardTitle}"/>
+
+                        <UniformGrid Grid.Row="1" Columns="2" VerticalAlignment="Top">
+                            <StackPanel Margin="0,0,16,12">
+                                <TextBlock Text="{DynamicResource Lbl_Name}" Foreground="{StaticResource SecondaryTextBrush}" FontSize="12" Margin="0,0,0,2"/>
+                                <TextBlock Text="{Binding Name}" FontWeight="Medium" FontSize="14" TextTrimming="CharacterEllipsis"/>
+                            </StackPanel>
+                            <StackPanel Margin="0,0,16,12">
+                                <TextBlock Text="{DynamicResource Lbl_Type}" Foreground="{StaticResource SecondaryTextBrush}" FontSize="12" Margin="0,0,0,2"/>
+                                <TextBlock Text="{Binding Type}" FontWeight="Medium" FontSize="14"/>
+                            </StackPanel>
+                            <StackPanel Margin="0,0,16,12">
+                                <TextBlock Text="{DynamicResource Lbl_Source}" Foreground="{StaticResource SecondaryTextBrush}" FontSize="12" Margin="0,0,0,2"/>
+                                <TextBlock Text="{Binding SourceDirectory}" FontWeight="Medium" FontSize="14" TextTrimming="CharacterEllipsis" ToolTip="{Binding SourceDirectory}"/>
+                            </StackPanel>
+                            <StackPanel Margin="0,0,16,12">
+                                <TextBlock Text="{DynamicResource Lbl_Target}" Foreground="{StaticResource SecondaryTextBrush}" FontSize="12" Margin="0,0,0,2"/>
+                                <TextBlock Text="{Binding TargetDirectory}" FontWeight="Medium" FontSize="14" TextTrimming="CharacterEllipsis" ToolTip="{Binding TargetDirectory}"/>
+                            </StackPanel>
+                        </UniformGrid>
+                    </Grid>
+                </Border>
             </Grid>
 
-            <GridSplitter Grid.Column="1"
-                          Width="5"
-                          HorizontalAlignment="Center"
-                          VerticalAlignment="Stretch"
-                          Background="LightGray"/>
-
-            <!-- ═══ COLONNE DROITE : actions + monitoring ════════════════════ -->
-            <Grid Grid.Column="2" Margin="10,0,0,0">
+            <!-- COLONNE DROITE -->
+            <Grid Grid.Column="2">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="*"/>
                 </Grid.RowDefinitions>
 
-                <!-- Actions -->
-                <GroupBox Grid.Row="0" Header="{DynamicResource Actions_Header}">
+                <!-- Carte : Actions Générales -->
+                <Border Grid.Row="0" Style="{StaticResource ModernCard}">
                     <StackPanel>
-                        <Button Content="{DynamicResource Btn_Create}"
-                                Click="CreateJob_Click"
-                                Margin="0,5" Padding="10" Height="35"/>
+                        <TextBlock Text="{DynamicResource Actions_Header}" Style="{StaticResource CardTitle}"/>
 
-                        <Button Content="{DynamicResource Btn_RunSelected}"
-                                Command="{Binding RunJobCommand}"
-                                Margin="0,5" Padding="10" Height="35"/>
-
-                        <Button Content="{DynamicResource Btn_RunAll}"
-                                Command="{Binding RunAllCommand}"
-                                Margin="0,5" Padding="10" Height="35"/>
-
-                        <Button Content="{DynamicResource Btn_Delete}"
-                                Command="{Binding DeleteJobCommand}"
-                                Margin="0,5" Padding="10" Height="35">
-                            <Button.Style>
-                                <Style TargetType="Button">
-                                    <Setter Property="Background" Value="#F44336"/>
-                                    <Setter Property="Foreground" Value="White"/>
-                                    <Style.Triggers>
-                                        <Trigger Property="IsEnabled" Value="False">
-                                            <Setter Property="Background" Value="#F8B5B5"/>
-                                            <Setter Property="Foreground" Value="White"/>
-                                            <Setter Property="Opacity" Value="0.8"/>
-                                        </Trigger>
-                                    </Style.Triggers>
-                                </Style>
-                            </Button.Style>
+                        <Button Content="{DynamicResource Btn_Create}" Click="CreateJob_Click" Style="{StaticResource PrimaryButton}" Margin="0,0,0,10" Padding="0,12" Height="29">
+                            <Button.ContentTemplate>
+                                <DataTemplate>
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock FontFamily="{StaticResource IconFont}" Text="&#xE710;" Margin="0,0,8,0" FontSize="16"/>
+                                        <TextBlock Text="{Binding}" FontWeight="SemiBold"/>
+                                    </StackPanel>
+                                </DataTemplate>
+                            </Button.ContentTemplate>
                         </Button>
 
-                        <Button Content="{DynamicResource Btn_Settings}"
-                                Click="AppSettings_Click"
-                                Margin="0,5" Padding="10" Height="35"/>
+                        <Button Content="{DynamicResource Btn_RunAll}" Command="{Binding RunAllCommand}" Style="{StaticResource ModernButton}" Margin="0,0,0,16" Height="28">
+                            <Button.ContentTemplate>
+                                <DataTemplate>
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock FontFamily="{StaticResource IconFont}" Text="&#xE81C;" Margin="0,0,8,0"/>
+                                        <TextBlock Text="{Binding}"/>
+                                    </StackPanel>
+                                </DataTemplate>
+                            </Button.ContentTemplate>
+                        </Button>
 
-                        <Separator Margin="0,5"/>
+                        <Separator Background="{StaticResource BorderBrush}" Margin="0,0,0,16"/>
 
-                        <!-- Contrôles globaux jobs en cours -->
-                        <UniformGrid Columns="3" Margin="0,2">
-                            <Button Content="⏸ Pause tous"
-                                    Command="{Binding PauseAllCommand}"
-                                    Margin="2" Padding="4" Height="30" FontSize="11"/>
-                            <Button Content="▶ Reprendre"
-                                    Command="{Binding PlayAllCommand}"
-                                    Margin="2" Padding="4" Height="30" FontSize="11"/>
-                            <Button Content="⏹ Stopper"
-                                    Command="{Binding StopAllCommand}"
-                                    Margin="2" Padding="4" Height="30" FontSize="11"/>
+                        <!-- Contrôles globaux corrigés (Plus de TextTransform) -->
+                        <TextBlock Text="CONTRÔLE GLOBAL" Foreground="{StaticResource SecondaryTextBrush}" FontSize="12" Margin="0,0,0,8" FontWeight="SemiBold"/>
+                        <UniformGrid Columns="3" Margin="0,0,0,8">
+                            <Button Command="{Binding PauseAllCommand}" Style="{StaticResource ModernButton}" Margin="0,0,4,0" Padding="4,8" ToolTip="Pause tous" Height="32">
+                                <TextBlock FontFamily="{StaticResource IconFont}" Text="&#xE769;" FontSize="16" Foreground="#E65100"/>
+                            </Button>
+                            <Button Command="{Binding PlayAllCommand}" Style="{StaticResource ModernButton}" Margin="4,0" Padding="4,8" ToolTip="Reprendre tous">
+                                <TextBlock FontFamily="{StaticResource IconFont}" Text="&#xE768;" FontSize="16" Foreground="{StaticResource SuccessBrush}"/>
+                            </Button>
+                            <Button Command="{Binding StopAllCommand}" Style="{StaticResource ModernButton}" Margin="4,0,0,0" Padding="4,8" ToolTip="Stopper tous">
+                                <TextBlock FontFamily="{StaticResource IconFont}" Text="&#xE71A;" FontSize="16" Foreground="{StaticResource DangerBrush}"/>
+                            </Button>
                         </UniformGrid>
-                        <Button Content="🗑 Effacer terminés"
-                                Command="{Binding ClearFinishedCommand}"
-                                Margin="0,2" Padding="4" Height="30" FontSize="11"/>
+
+                        <Button Content="Nettoyer les terminés" Command="{Binding ClearFinishedCommand}" Style="{StaticResource ModernButton}" Foreground="{StaticResource SecondaryTextBrush}" Height="30">
+                            <Button.ContentTemplate>
+                                <DataTemplate>
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock FontFamily="{StaticResource IconFont}" Text="&#xE74D;" Margin="0,0,6,0"/>
+                                        <TextBlock Text="{Binding}" FontSize="12"/>
+                                    </StackPanel>
+                                </DataTemplate>
+                            </Button.ContentTemplate>
+                        </Button>
                     </StackPanel>
-                </GroupBox>
+                </Border>
 
-                <!-- Monitoring jobs en cours -->
-                <GroupBox Grid.Row="1" Margin="0,10,0,0">
-                    <GroupBox.Header>
-                        <StackPanel Orientation="Horizontal">
-                            <TextBlock Text="{DynamicResource Monitor_Header}"
-                                       VerticalAlignment="Center"/>
-                            <Border Background="#2196F3" CornerRadius="8"
-                                    Margin="6,0,0,0" Padding="6,1">
-                                <TextBlock Text="{Binding RunningJobs.Count, Mode=OneWay}"
-                                           Foreground="White" FontSize="11" FontWeight="Bold"/>
-                            </Border>
-                        </StackPanel>
-                    </GroupBox.Header>
-
+                <!-- Carte : Monitoring en cours -->
+                <Border Grid.Row="1" Style="{StaticResource ModernCard}" Margin="0">
                     <Grid>
-                        <!-- Message si aucun job -->
-                        <TextBlock Text="{DynamicResource Monitor_Empty}"
-                                   Foreground="#AAAAAA"
-                                   FontStyle="Italic"
-                                   HorizontalAlignment="Center"
-                                   VerticalAlignment="Center">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                        </Grid.RowDefinitions>
+
+                        <DockPanel Grid.Row="0" Margin="0,0,0,16">
+                            <TextBlock DockPanel.Dock="Left" Text="{DynamicResource Monitor_Header}" Style="{StaticResource CardTitle}" Margin="0"/>
+                            <Border DockPanel.Dock="Right" Background="{StaticResource PrimaryBrush}" CornerRadius="12" Padding="8,2" HorizontalAlignment="Right" VerticalAlignment="Center">
+                                <TextBlock Text="{Binding RunningJobs.Count, Mode=OneWay}" Foreground="{StaticResource SurfaceBrush}" FontSize="12" FontWeight="Bold"/>
+                            </Border>
+                        </DockPanel>
+
+                        <TextBlock Grid.Row="1" Text="{DynamicResource Monitor_Empty}" Foreground="{StaticResource SecondaryTextBrush}" FontStyle="Italic" HorizontalAlignment="Center" VerticalAlignment="Center">
                             <TextBlock.Style>
                                 <Style TargetType="TextBlock">
                                     <Setter Property="Visibility" Value="Collapsed"/>
@@ -375,23 +370,20 @@
                             </TextBlock.Style>
                         </TextBlock>
 
-                        <!-- Liste des jobs en cours -->
-                        <ScrollViewer VerticalScrollBarVisibility="Auto">
-                            <ItemsControl ItemsSource="{Binding RunningJobs}"
-                                          ItemTemplate="{StaticResource RunningJobTemplate}"/>
+                        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Margin="-4,0,-4,-4" Padding="4">
+                            <ItemsControl ItemsSource="{Binding RunningJobs}" ItemTemplate="{StaticResource RunningJobTemplate}"/>
                         </ScrollViewer>
                     </Grid>
-                </GroupBox>
+                </Border>
             </Grid>
         </Grid>
 
-        <!-- Status Bar -->
-        <Border Grid.Row="2"
-                Background="#f5f5f5"
-                Padding="10"
-                BorderThickness="0,1,0,0"
-                BorderBrush="#ddd">
-            <TextBlock Text="{Binding StatusMessage, Mode=OneWay}" FontSize="12"/>
+        <!-- STATUS BAR -->
+        <Border Grid.Row="2" Background="{StaticResource SurfaceBrush}" Padding="16,6" BorderThickness="0,1,0,0" BorderBrush="{StaticResource BorderBrush}">
+            <DockPanel>
+                <TextBlock DockPanel.Dock="Left" FontFamily="{StaticResource IconFont}" Text="&#xE9F3;" Foreground="{StaticResource PrimaryBrush}" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                <TextBlock Text="{Binding StatusMessage, Mode=OneWay}" Foreground="{StaticResource SecondaryTextBrush}" FontSize="12" VerticalAlignment="Center"/>
+            </DockPanel>
         </Border>
     </Grid>
 </Window>
