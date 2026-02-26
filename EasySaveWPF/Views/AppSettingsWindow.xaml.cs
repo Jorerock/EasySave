@@ -40,6 +40,8 @@ namespace EasySave.WPF.Views
 
             // Log mode
             SetLogMode(settings.LogMode);
+            // CryptoSoft path
+            CryptoSoftPathTextBox.Text = settings.CryptoSoftPath ?? string.Empty;
 
             // Central URL
             CentralUrlTextBox.Text = string.IsNullOrWhiteSpace(settings.CentralLogUrl)
@@ -123,6 +125,18 @@ namespace EasySave.WPF.Views
 
             // Extensions to encrypt
             settings.ExtensionsToEncrypt = GetEncryptExtensionsFromUI();
+            // CryptoSoft path
+            settings.CryptoSoftPath = CryptoSoftPathTextBox.Text?.Trim() ?? "";
+
+            // Si vide, utilise le chemin par défaut
+            if (string.IsNullOrWhiteSpace(settings.CryptoSoftPath))
+            {
+                settings.CryptoSoftPath = System.IO.Path.Combine(
+                    AppDomain.CurrentDomain.BaseDirectory,
+                    "CryptoSoft",
+                    "CryptoSoft.exe"
+                );
+            }
 
             // Priority extensions
             settings.PriorityExtensions = GetPriorityExtensionsFromUI();
@@ -176,6 +190,7 @@ namespace EasySave.WPF.Views
             return new AppSettings
             {
                 Language = s.Language,
+                CryptoSoftPath = s.CryptoSoftPath ?? "",
                 LogFormat = s.LogFormat ?? "json",
                 ExtensionsToEncrypt = s.ExtensionsToEncrypt != null ? new List<string>(s.ExtensionsToEncrypt) : new List<string>(),
                 BusinessSoftwarePath = s.BusinessSoftwarePath ?? "",
