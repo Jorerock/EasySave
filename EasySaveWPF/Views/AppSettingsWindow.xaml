@@ -122,7 +122,18 @@
                         <TextBox x:Name="SourceTextBox"
                                  Style="{StaticResource ModernTextBox}"
                                  ToolTip="{DynamicResource Settings_BusinessSoftwareTooltip}"/>
+                        <!-- ✨ CryptoSoft Path -->
+                        <TextBlock Style="{StaticResource FieldLabel}"
+           Text="CryptoSoft.exe Path"/>
+                        <TextBlock Style="{StaticResource FieldHint}"
+           Text="Path to the encryption executable (CryptoSoft.exe)"/>
+                        <TextBox x:Name="CryptoSoftPathTextBox"
+         Style="{StaticResource ModernTextBox}"
+         Margin="0,0,0,16"
+         ToolTip="Example: C:\Tools\CryptoSoft\CryptoSoft.exe"/>
                     </StackPanel>
+                    
+                    
                 </Border>
 
                 <!-- Section Extensions -->

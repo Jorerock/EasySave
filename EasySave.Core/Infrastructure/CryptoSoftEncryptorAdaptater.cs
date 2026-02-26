@@ -10,12 +10,14 @@ namespace EasySave.Core.Infrastructure
         private readonly string _key;
         private readonly ILogWriter _logWriter;
         private readonly AppSettings _settings;
+        private readonly string _cryptoSoftExePath;
 
         public CryptoSoftEncryptorAdapter(string key, ILogWriter logWriter, AppSettings settings)
         {
             _key = key ?? throw new ArgumentNullException(nameof(key));
             _logWriter = logWriter ?? throw new ArgumentNullException(nameof(logWriter));
             _settings = settings ?? throw new ArgumentNullException(nameof(settings));
+            _cryptoSoftExePath = _settings.CryptoSoftPath;
         }
 
         /// Crypt the file and return is time in ms, or -1 if an error occurs

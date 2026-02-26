@@ -19,7 +19,7 @@ namespace EasySave.Core.Domain
         public int LargeFileThresholdKo { get; set; } = 1024;
         public string LogMode { get; set; } = "local"; // local | central | both
         public string CentralLogUrl { get; set; } = "http://localhost:5080"; // docker service
-
+        public string CryptoSoftPath { get; set; } = "";
 
         public AppSettings()
         {
@@ -27,6 +27,7 @@ namespace EasySave.Core.Domain
             LogFormat = "json";
             ExtensionsToEncrypt = new List<string>();
             BusinessSoftwarePath = "";
+
         }
 
         public void SetLanguage(AppLanguage language)
