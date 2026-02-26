@@ -20,6 +20,8 @@ namespace EasySave.Core.Domain
         public string LogMode { get; set; } = "local"; // local | central | both
         public string CentralLogUrl { get; set; } = "http://localhost:5080"; // docker service
 
+        public long MaxParallelSizeKo { get; set; } = 1000; // 1 Mo
+       
 
         public AppSettings()
         {
@@ -39,4 +41,5 @@ namespace EasySave.Core.Domain
             Language = language;
         }
     }
+   
 }

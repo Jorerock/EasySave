@@ -33,8 +33,9 @@ namespace EasySave
             AppSettings appSettings = settingsManager.Get();
 
             // Instantiate detector required by FileSystemBackupEngine
-            IBusinessSoftwareDetector detector = new ProcessBusinessSoftwareDetector();
-            IBackupEngine engine = new FileSystemBackupEngine(logWriter, stateWriter, appSettings, detector);
+            IBusinessSoftwareDetector detector = new ProcessBusinessSoftwareDetector( appSettings );
+            PriorityTransferCoordinator priorityCoordinator = null;
+            IBackupEngine engine = new FileSystemBackupEngine(logWriter, stateWriter, appSettings, detector, priorityCoordinator);
 
 
             JobManager jobManager = new JobManager(repo);

@@ -44,6 +44,11 @@ namespace EasySave.WPF
             // Detector
             IBusinessSoftwareDetector detector = new ProcessBusinessSoftwareDetector(appSettings);
 
+            //
+            long maxParallelSizeKo = appSettings.MaxParallelSizeKo;
+           
+
+
             // Writers
             ILogWriter logWriter = LogWriterFactory.Create(appSettings, logDir);
             IStateWriter stateWriter = new JsonStateWriter(statePath);

@@ -21,6 +21,7 @@ namespace EasySave.Core.Infrastructure
         private readonly AppSettings _settings;
         private readonly IBusinessSoftwareDetector _detector;
         private readonly PriorityTransferCoordinator _priorityCoordinator;
+       
 
         public FileSystemBackupEngine(
             ILogWriter logWriter,
@@ -173,7 +174,7 @@ namespace EasySave.Core.Infrastructure
 
                     try
                     {
-                        ProcessFile(file, sourceDir, targetDir, job, encryptor);
+                        ProcessFile(file, sourceDir, targetDir, job, encryptor, reporter , state );
                         filesCopied++;
                         if (isPriority)
                         {
@@ -284,7 +285,7 @@ namespace EasySave.Core.Infrastructure
 
                     try
                     {
-                        ProcessFile(file, sourceDir, targetDir, job, encryptor);
+                        ProcessFile(file, sourceDir, targetDir, job, encryptor, reporter ,state);
                         filesCopied++;
 
                         if (isPriority)
@@ -335,48 +336,134 @@ namespace EasySave.Core.Infrastructure
             return null;
         }
 
+        /*   private void ProcessFile(
+       FileInfo file,
+       DirectoryInfo sourceDir,
+       DirectoryInfo targetDir,
+       BackupJob job,
+       CryptoSoftEncryptorAdapter encryptor)
+           {
+               var startTime = DateTime.Now;
+               var relativePath = Path.GetRelativePath(sourceDir.FullName, file.FullName);
+               var targetPath = Path.Combine(targetDir.FullName, relativePath);
+               var targetFileDir = Path.GetDirectoryName(targetPath);
+
+               // ✅ userId pour logs centralisés
+               var userId = $"{Environment.MachineName}\\{Environment.UserName}";
+
+               if (!Directory.Exists(targetFileDir))
+                   Directory.CreateDirectory(targetFileDir!);
+
+               File.Copy(file.FullName, targetPath, true);
+               var copyTime = (DateTime.Now - startTime).TotalMilliseconds;
+
+               long encryptTime = 0;
+               if (encryptor != null && encryptor.ShouldEncrypt(targetPath))
+               {
+                   encryptTime = encryptor.EncryptFile(targetPath, job.Name);
+                   if (encryptTime < 0)
+                       Console.WriteLine($"Échec du chiffrement : {targetPath}");
+               }
+
+               _logWriter.WriteDailyLog(new LogEntry
+               {
+                   Timestamp = DateTime.Now,
+                   BackupName = job.Name,
+                   SourcePathUNC = file.FullName,
+                   TargetPathUNC = targetPath,
+                   FileSizeBytes = file.Length,
+                   TransferTimeMs = (long)copyTime,
+                   EncryptionTimeMs = encryptTime,
+
+                   // ⚠️ IMPORTANT : cette propriété doit exister dans EasyLog.dll
+                   User = userId
+               });
+           }
+        */
+        private static readonly SemaphoreSlim _largefileSemaphore = new SemaphoreSlim(1, 1); // Pour limiter les transferts simultanés de gros fichiers
         private void ProcessFile(
-    FileInfo file,
-    DirectoryInfo sourceDir,
-    DirectoryInfo targetDir,
-    BackupJob job,
-    CryptoSoftEncryptorAdapter encryptor)
+            FileInfo file,
+            DirectoryInfo sourceDir,
+            DirectoryInfo targetDir,
+            BackupJob job,
+            CryptoSoftEncryptorAdapter encryptor,
+            IProgressReporter reporter,
+            StateEntry state) // Ajout de l'état pour les mises à jour en temps réel
         {
-            var startTime = DateTime.Now;
-            var relativePath = Path.GetRelativePath(sourceDir.FullName, file.FullName);
-            var targetPath = Path.Combine(targetDir.FullName, relativePath);
-            var targetFileDir = Path.GetDirectoryName(targetPath);
-
-            // ✅ userId pour logs centralisés
-            var userId = $"{Environment.MachineName}\\{Environment.UserName}";
-
-            if (!Directory.Exists(targetFileDir))
-                Directory.CreateDirectory(targetFileDir!);
-
-            File.Copy(file.FullName, targetPath, true);
-            var copyTime = (DateTime.Now - startTime).TotalMilliseconds;
-
-            long encryptTime = 0;
-            if (encryptor != null && encryptor.ShouldEncrypt(targetPath))
+            // ── FONCTIONNALITÉ : PAUSE TEMPORAIRE (LOGICIEL MÉTIER) ──
+            // On boucle tant que le logiciel métier est détecté
+            while (_detector.IsBlocked())
             {
-                encryptTime = encryptor.EncryptFile(targetPath, job.Name);
-                if (encryptTime < 0)
-                    Console.WriteLine($"Échec du chiffrement : {targetPath}");
+                state.State = JobRunState.BlockedByBusinessSoftware; //
+                _stateWriter.WriteState(state); //
+
+                // Attente avant nouvelle vérification pour ne pas surcharger le CPU
+                Thread.Sleep(8000);
+
+                // Permet l'arrêt définitif si l'utilisateur annule pendant la pause
+                reporter?.CancellationToken.ThrowIfCancellationRequested();
             }
 
-            _logWriter.WriteDailyLog(new LogEntry
+            // On remet l'état en "Active" dès que le logiciel métier est fermé
+            if (state.State == JobRunState.BlockedByBusinessSoftware)
             {
-                Timestamp = DateTime.Now,
-                BackupName = job.Name,
-                SourcePathUNC = file.FullName,
-                TargetPathUNC = targetPath,
-                FileSizeBytes = file.Length,
-                TransferTimeMs = (long)copyTime,
-                EncryptionTimeMs = encryptTime,
+                state.State = JobRunState.Active;
+                _stateWriter.WriteState(state);
+            }
 
-                // ⚠️ IMPORTANT : cette propriété doit exister dans EasyLog.dll
-                User = userId
-            });
+            // ── FONCTIONNALITÉ : INTERDICTION PARALLÈLE (> N Ko) ──
+            // Récupération du seuil N depuis les AppSettings
+            long thresholdBytes = _settings.MaxParallelSizeKo ;
+            bool isLargeFile = file.Length > thresholdBytes;
+
+            if (isLargeFile)
+            {
+                // Si le fichier est gros, on attend que la place se libère
+                _largefileSemaphore.Wait();
+            }
+
+            try
+            {
+                var startTime = DateTime.Now;
+                var relativePath = Path.GetRelativePath(sourceDir.FullName, file.FullName);
+                var targetPath = Path.Combine(targetDir.FullName, relativePath);
+                var targetFileDir = Path.GetDirectoryName(targetPath);
+
+                if (!Directory.Exists(targetFileDir))
+                    Directory.CreateDirectory(targetFileDir!);
+
+                // Transfert physique
+                File.Copy(file.FullName, targetPath, true);
+                var copyTime = (DateTime.Now - startTime).TotalMilliseconds;
+
+                // Gestion du cryptage (existant dans votre code)
+                long encryptTime = 0;
+                if (encryptor != null && encryptor.ShouldEncrypt(targetPath))
+                {
+                    encryptTime = encryptor.EncryptFile(targetPath, job.Name);
+                }
+
+                // Écriture des logs avec EncryptionTimeMs
+                _logWriter.WriteDailyLog(new LogEntry
+                {
+                    Timestamp = DateTime.Now,
+                    BackupName = job.Name,
+                    SourcePathUNC = file.FullName,
+                    TargetPathUNC = targetPath,
+                    FileSizeBytes = file.Length,
+                    TransferTimeMs = (long)copyTime,
+                    EncryptionTimeMs = encryptTime, //
+                    User = $"{Environment.MachineName}\\{Environment.UserName}"
+                });
+            }
+            finally
+            {
+                // Libération impérative du sémaphore pour ne pas bloquer les autres jobs
+                if (isLargeFile)
+                {
+                    _largefileSemaphore.Release();
+                }
+            }
         }
 
         private bool IsPriorityFile(FileInfo file)
