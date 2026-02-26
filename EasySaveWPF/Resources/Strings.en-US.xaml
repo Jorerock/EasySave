@@ -72,4 +72,16 @@
     <sys:String x:Key="Settings_PriorityExtensions">Priority extensions</sys:String>
     <sys:String x:Key="Settings_PriorityExtensionsHint">(Non-priority files wait while priority files exist)</sys:String>
 
+    <!-- New Section Headers (Redesign) -->
+    <sys:String x:Key="Settings_Section_App">Application</sys:String>
+    <sys:String x:Key="Settings_Section_Extensions">Files &amp; Extensions</sys:String>
+    <sys:String x:Key="Settings_Section_Logs">Logging</sys:String>
+
+    <sys:String x:Key="CreateJob_Section_General">General Information</sys:String>
+    <sys:String x:Key="CreateJob_Section_Directories">Locations</sys:String>
+    <sys:String x:Key="CreateJob_Section_Options">Security Options</sys:String>
+
+    <sys:String x:Key="Monitor_Header">Running Jobs</sys:String>
+    <sys:String x:Key="Monitor_Empty">No active jobs right now.</sys:String>
+
 </ResourceDictionary>

@@ -72,5 +72,15 @@
 
     <sys:String x:Key="Settings_PriorityExtensions">Extensions prioritaires</sys:String>
     <sys:String x:Key="Settings_PriorityExtensionsHint">(Les fichiers non prioritaires attendent tant qu'il reste des prioritaires)</sys:String>
+    <sys:String x:Key="Settings_Section_App">Application</sys:String>
+    <sys:String x:Key="Settings_Section_Extensions">Fichiers &amp; Extensions</sys:String>
+    <sys:String x:Key="Settings_Section_Logs">Journaux (Logs)</sys:String>
+
+    <sys:String x:Key="CreateJob_Section_General">Informations générales</sys:String>
+    <sys:String x:Key="CreateJob_Section_Directories">Emplacements</sys:String>
+    <sys:String x:Key="CreateJob_Section_Options">Options de sécurité</sys:String>
+
+    <sys:String x:Key="Monitor_Header">Travaux en cours</sys:String>
+    <sys:String x:Key="Monitor_Empty">Aucun travail en cours.</sys:String>
 
 </ResourceDictionary>
