@@ -22,6 +22,7 @@ namespace EasySave.Core.Domain
 
         public long MaxParallelSizeKo { get; set; } = 1000; // 1 Mo
        
+        public string CryptoSoftPath { get; set; } = "";
 
         public AppSettings()
         {
@@ -29,6 +30,7 @@ namespace EasySave.Core.Domain
             LogFormat = "json";
             ExtensionsToEncrypt = new List<string>();
             BusinessSoftwarePath = "";
+
         }
 
         public void SetLanguage(AppLanguage language)
